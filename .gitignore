@@ -1,0 +1,42 @@
+# AI agent tools. Tracked files are canonical dev-environment config.
+# Skills are installed from agr.toml + agr.lock (agr sync / setup.sh); do not
+# vendor copies.
+.claude/skills/
+.cursor/skills/
+.claude/settings.local.json
+# Tracked (do NOT ignore): AGENTS.md, CLAUDE.md (import stub), CONVENTIONS.md,
+# agr.toml, template.answers (the answers scripts/init.sh was run with).
+# agr.lock is NOT tracked here (agr.toml still holds the {{SKILL_FORK}} token);
+# setup.sh generates it on first run and the created project should commit it.
+
+# Astro / Node build output and caches
+node_modules/
+dist/
+.astro/
+.output/
+.vercel/
+.netlify/
+.wrangler/
+
+# Environment
+.env
+.env.production
+.env*.local
+
+# OS / editor
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Playwright visual regression test (VRT) output. Baselines are generated and
+# compared on Linux/CI only (font rendering makes cross-OS baselines flaky);
+# only tests/vrt/__screenshots__/linux/ is authoritative and gets committed.
+# macOS-generated baselines stay local. Lands in Stage 3, see CONVENTIONS.md.
+/tests/vrt/__screenshots__/darwin/
+/tests/vrt/__screenshots__/win32/
+/test-results/
+/playwright-report/
+/blob-report/
