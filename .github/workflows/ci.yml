@@ -1,0 +1,101 @@
+# CI for this repo, in both of its lives: the bare template, and a project
+# created from it. The guard job below decides which.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Same-repo pull requests fire both a push event and a pull_request event for
+# the identical commit, so without this every PR push doubles every job.
+# Group by workflow + ref and cancel the superseded run rather than
+# restricting push, so direct pushes to a branch with no open PR still get a
+# CI run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Astro 7 requires Node 22.12.0 or higher. Keep in step with MIN_NODE in
+  # scripts/setup.sh. '22' resolves to the latest 22.x, which satisfies it.
+  NODE_VERSION: '22'
+
+jobs:
+  # Is this a scaffolded project or the bare template? There is no package.json
+  # until scripts/setup.sh has run create-astro, so its presence is the signal.
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: check
+        run: |
+          if [ -f package.json ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false (bare template, nothing to build)"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Runs only on the bare template (package.json absent), the inverse of the
+  # guard above. Gives the template repo itself a green, meaningful CI run
+  # instead of a run that skips everything.
+  template:
+    name: Template regression suite
+    needs: guard
+    if: needs.guard.outputs.run == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/test-template.sh
+
+  # Needs live verification: the two project jobs below are validated for YAML
+  # syntax only. They cannot run on the bare template by design, and no project
+  # has been created from this template yet.
+  # make lint and make test also depend on the quality toolchain wiring that is
+  # Stage 2 in template-docs/PROMPTS.md (ESLint, Prettier, Vitest, CSpell
+  # configuration and devDependencies). Until Stage 2 lands, those two steps
+  # will fail on a created project.
+  quality:
+    name: Type check, lint, test
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      # After setup-node, so the corepack shims point at the Node just
+      # installed rather than the runner's preinstalled one.
+      - run: corepack enable pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Type check (astro check)
+        run: make check
+      - name: Lint (ESLint)
+        run: make lint
+      - name: Unit tests (Vitest)
+        run: make test
+
+  build:
+    name: Build
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Production build
+        run: make build
+
+  # Browser checks (axe-core accessibility scan plus Playwright visual
+  # regression, sharing one scan-urls.json) land in Stage 3. See CONVENTIONS.md
+  # for the contract they will implement.
