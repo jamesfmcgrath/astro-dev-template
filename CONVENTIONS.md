@@ -62,8 +62,9 @@ template has none.
 
 - `run == false` (bare template): the **template** job runs
   `scripts/test-template.sh`. Nothing else runs.
-- `run == true` (created project): the **project** jobs run `make check`,
-  `make lint`, `make test` and `make build`.
+- `run == true` (created project): the **project** job runs `make check`,
+  `make lint`, `make format-check`, `make spell`, `make test` and
+  `make build`, in that order.
 
 The point of the inversion is that the template repo gets a green, meaningful
 CI run of its own instead of a run that skips everything.
@@ -89,6 +90,12 @@ TypeScript 7 (track
 https://github.com/withastro/roadmap/discussions/1321), **and re-check this
 range** if TypeScript ships `6.1.0` before `typescript-eslint` widens its
 peer range past it.
+
+`typescript-eslint` is pinned to `^8` in `scripts/setup.sh` for the same
+reason: its flat-config ordering behaviour and its `typescript` peer range are
+both verified against 8.70.0 specifically. **Reopen** when deliberately
+testing a `typescript-eslint` major bump, re-verifying the ordering and
+peer-range facts above against the new version before lifting the pin.
 
 `eslint.config.mjs` spreads `typescript-eslint`'s recommended config *before*
 `eslint-plugin-astro`'s, not after: `eslint-plugin-astro`'s `base` config
@@ -133,8 +140,8 @@ Lineage: inherited wholesale from localgov-drupal-dev-template.
 - `CONVENTIONS.md` stays (see the top of this file).
 - `TEMPLATE.md` is the token registry and template-only instructions.
   `init.sh` removes it.
-- `template-docs/` is maintainer-only (`PROMPTS.md`, `memory.md`). `init.sh`
-  removes it.
+- `template-docs/` is maintainer-only (`PROMPTS.md`, `memory.md`, dated
+  implementation plans under `plans/`). `init.sh` removes it.
 - `CHANGELOG.md` is the update path. A project created from the template pulls
   template improvements by reading the changelog and applying the entries it
   wants, not by merging the template's history.

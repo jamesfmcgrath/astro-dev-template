@@ -21,5 +21,11 @@
     "jamesfmcgrath",
     "mktemp"
   ],
-  "ignorePaths": ["pnpm-lock.yaml", "template.answers"]
+  "ignorePaths": [
+    "pnpm-lock.yaml",
+    "template.answers",
+    "dist/**",
+    ".astro/**",
+    "node_modules/**"
+  ]
 }

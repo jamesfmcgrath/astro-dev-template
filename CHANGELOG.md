@@ -36,8 +36,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   dev toolbar audits treated as lint, WCAG 2.2 AA. `CLAUDE.md` is the
   `@AGENTS.md` import stub.
 - `.github/workflows/ci.yml` with the guard-job inversion: the template job
-  runs the regression suite while `package.json` is absent, the project jobs
-  run `make check`, `make lint`, `make test` and `make build` once it exists.
+  runs the regression suite while `package.json` is absent, the project job
+  runs `make check`, `make lint`, `make format-check`, `make spell`,
+  `make test` and `make build`, in that order, once it exists.
 - `eslint.config.mjs`, `.prettierrc.json`, `vitest.config.ts`, `cspell.json`:
   quality toolchain config at the template root. `scripts/setup.sh` installs
   the matching devDependencies and writes a self-contained sample component
@@ -93,8 +94,7 @@ with 0 errors and `make build`. Per-combination detail is in
 ### Needs live verification
 
 - blog on ssr and starlight on ssr.
-- The `quality` and `build` CI jobs, which cannot run until a project exists.
 - The restructured `quality` CI job (`check`, `lint`, `format-check`,
   `spell`, `test`, `build` in one job). Passed locally against a scaffolded
-  minimal project on 2026-09-09 (see `template-docs/memory.md`); has not yet
+  minimal project on 2026-09-10 (see `template-docs/memory.md`); has not yet
   run in GitHub Actions on a created project.

@@ -135,6 +135,6 @@ gitignored, and an `agr` failure warns rather than aborting setup.
 ## Working Rules
 
 - Work incrementally: small, self-contained changes, tested as you go.
-- Any change ships passing `make check`, `make lint`, `make test` and
-  `make build` before it is considered done.
+- Any change ships passing `make check`, `make lint`, `make format-check`,
+  `make spell`, `make test` and `make build` before it is considered done.
 - No em dashes in output. No code comments unless essential.

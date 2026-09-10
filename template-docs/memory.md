@@ -73,6 +73,18 @@ post-`make build` re-run to confirm `dist/` (gitignored) is not scanned. The
 restructured GitHub Actions `quality` job itself has not run in CI yet; that
 still needs a real push from a created project.
 
+Caveat added by the final whole-branch review (2026-09-10): that
+post-`make build` re-run passed only because `dist/` happened to hold nothing
+CSpell objected to, not because `cspell.json` excluded it. `ignorePaths` had
+no `dist/**`, `.astro/**` or `node_modules/**` entry, so `.astro/` (which
+`astro check` generates before `make spell` runs in CI, and which on a
+content-collection flavour serialises whole collections into
+`data-store.json`) and `dist/` were both in scope. All three are now in
+`ignorePaths`. Note also that `make spell` has been run live on
+minimal/static only: the `blog`, `starlight` and `ssr` combinations have not
+been spell checked against a real scaffold, which is Stage 4's job per
+`PROMPTS.md`, not Stage 2's.
+
 ## Bugs found by the live runs (2026-09-09)
 
 All four were found by running the thing, none by reading it. Each is fixed and
@@ -148,6 +160,4 @@ Read from the npm registry and the published packages, not from memory:
 ## Open questions
 
 - Whether `starlight` should be offered on `ssr` at all.
-- The `quality` and `build` CI jobs have never run. They cannot, until a
-  project created from this template pushes with a `package.json` present.
 - `make dev` has been exercised on minimal/static only.
