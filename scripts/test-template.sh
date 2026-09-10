@@ -67,6 +67,35 @@ json_parse() {
   python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$1" >/dev/null 2>&1
 }
 
+# Paths init.sh removes as part of a normal run. Prose here (TEMPLATE.md,
+# template-docs/, this suite's own source) quotes the ${{ }} rule rather than
+# holding real workflow expressions, and its removal is already asserted in
+# assert_common; excluded so it does not pollute the tokenisation invariant
+# below with an expected deletion.
+GA_EXPR_EXCLUDES=("./scripts/init.sh" "./TEMPLATE.md" "./scripts/test-template.sh" "./template-docs")
+
+# extract_ga_expressions <dir> -> sorted "relpath<TAB>expression" lines, one
+# per GitHub Actions ${{ ... }} match. The baseline is derived from whatever
+# the staged copy currently contains rather than a hardcoded count, so a
+# legitimate CI edit that adds or removes an expression never breaks the
+# suite; the invariant is that tokenisation must not alter or destroy any
+# expression that was there before init.sh ran.
+extract_ga_expressions() {
+  local dir="$1" f p skip
+  (cd "$dir" && grep -rlE '\$\{\{[^}]*\}\}' . --exclude-dir=.git 2>/dev/null) | while IFS= read -r f; do
+    skip=0
+    for p in "${GA_EXPR_EXCLUDES[@]}"; do
+      case "$f" in
+        "$p" | "$p"/*) skip=1; break ;;
+      esac
+    done
+    [ "$skip" = "1" ] && continue
+    grep -oE '\$\{\{[^}]*\}\}' "$dir/$f" | while IFS= read -r expr; do
+      printf '%s\t%s\n' "${f#./}" "$expr"
+    done
+  done | sort
+}
+
 # Feed init.sh's prompts in order. A blank line accepts the offered default.
 # Prompt order: site name, site label, client, skill fork, flavour, deploy
 # target. Used by the one combo that covers the interactive path; every other
@@ -117,6 +146,12 @@ assert_common() { # assert_common <dir> <label>
   if [ ! -e "$dir/TEMPLATE.md" ]; then pass "$label: TEMPLATE.md removed"; else fail "$label: TEMPLATE.md still present"; fi
   if [ ! -e "$dir/scripts/test-template.sh" ]; then pass "$label: scripts/test-template.sh removed"; else fail "$label: scripts/test-template.sh still present"; fi
   if [ ! -e "$dir/template-docs" ]; then pass "$label: template-docs/ removed"; else fail "$label: template-docs/ still present"; fi
+
+  # Maintainer-only material a client project must not inherit. Both already
+  # live under template-docs/, so the blanket removal above covers them; these
+  # assert that explicitly rather than relying only on the coarser check.
+  if [ ! -e "$dir/template-docs/plans" ]; then pass "$label: template-docs/plans/ removed"; else fail "$label: template-docs/plans/ still present"; fi
+  if [ ! -e "$dir/template-docs/PROMPTS.md" ]; then pass "$label: template-docs/PROMPTS.md removed"; else fail "$label: template-docs/PROMPTS.md still present"; fi
 
   # CONVENTIONS.md documents the scripts a created project still has, so it is
   # deliberately kept.
@@ -250,8 +285,8 @@ run_combo() { # run_combo <flavour> <deploy> <astro_template> <adapter> [mode] [
   tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/test-template.XXXXXX")"
   stage_copy "$tmp_dir"
 
-  local ci_before ci_after
-  ci_before="$(grep -oF '${{' "$tmp_dir/.github/workflows/ci.yml" | wc -l | tr -d ' ')"
+  local ga_before ga_after
+  ga_before="$(extract_ga_expressions "$tmp_dir")"
 
   # A file that did not exist when the template was written must still be
   # substituted: the file list is discovered, not hand-maintained.
@@ -289,12 +324,14 @@ run_combo() { # run_combo <flavour> <deploy> <astro_template> <adapter> [mode] [
     fi
   fi
 
-  # GitHub Actions ${{ ... }} expressions must survive untouched.
-  ci_after="$(grep -oF '${{' "$tmp_dir/.github/workflows/ci.yml" | wc -l | tr -d ' ')"
-  if [ "$ci_before" = "$ci_after" ]; then
-    pass "$label: \${{ count in ci.yml unchanged ($ci_before)"
+  # GitHub Actions ${{ ... }} expressions must survive untouched: the exact
+  # set (not just a count) must match before and after init.sh ran.
+  ga_after="$(extract_ga_expressions "$tmp_dir")"
+  if [ "$ga_before" = "$ga_after" ]; then
+    pass "$label: \${{ }} expressions unchanged across init.sh"
   else
-    fail "$label: \${{ count in ci.yml changed ($ci_before -> $ci_after)"
+    fail "$label: \${{ }} expressions changed across init.sh"
+    diff <(printf '%s\n' "$ga_before") <(printf '%s\n' "$ga_after") | sed 's/^/      /'
   fi
 
   # A second run must refuse rather than half-apply anything.
@@ -334,6 +371,58 @@ done
 # One combination through the prompt path, so the interactive fallback stays
 # covered.
 run_combo "blog" "static" "blog" "" interactive ""
+
+# titlecase()/SITE_LABEL: BSD tr rejected tr '-_' '  ' as an illegal option
+# (starts with '-'), so titlecase() silently produced nothing and SITE_LABEL
+# came out empty on any run that did not pass --site-label explicitly. None of
+# the COMBOS above exercise this path, since they all pass --site-label, so
+# this section drives it directly.
+echo ""
+echo -e "${BOLD}== titlecase / SITE_LABEL ==${RESET}"
+
+# Unit-level: exercise the function itself with input a real --site value
+# never reaches (site names cannot hold an underscore, see valid_site_name),
+# so the hyphen-and-underscore case can only be proven directly.
+titlecase_src="$(sed -n '/^titlecase() {/,/^}/p' scripts/init.sh)"
+eval "$titlecase_src"
+tc_result="$(titlecase 'foo-bar_baz')"
+if [ "$tc_result" = "Foo Bar Baz" ]; then
+  pass "titlecase: hyphen and underscore both split and capitalised (foo-bar_baz -> $tc_result)"
+else
+  fail "titlecase: foo-bar_baz -> '$tc_result', expected 'Foo Bar Baz'"
+fi
+
+# --defaults: no flags at all, so SITE_LABEL must derive from titlecase() of
+# the default site name.
+defaults_dir="$(mktemp -d "${TMPDIR:-/tmp}/test-template.XXXXXX")"
+stage_copy "$defaults_dir"
+if (cd "$defaults_dir" && ./scripts/init.sh --defaults </dev/null) >/dev/null 2>&1; then
+  pass "titlecase: --defaults run exits 0"
+else
+  fail "titlecase: --defaults run exited nonzero"
+fi
+if grep -qxF 'SITE_LABEL=My Site' "$defaults_dir/template.answers" 2>/dev/null; then
+  pass "titlecase: --defaults derives a non-empty SITE_LABEL (My Site)"
+else
+  fail "titlecase: --defaults produced an unexpected or empty SITE_LABEL ($(grep '^SITE_LABEL=' "$defaults_dir/template.answers" 2>/dev/null))"
+fi
+rm -rf "$defaults_dir"
+
+# --site only: every other prompt falls through to ask()'s own default,
+# including SITE_LABEL, which is exactly the path the bug broke.
+site_only_dir="$(mktemp -d "${TMPDIR:-/tmp}/test-template.XXXXXX")"
+stage_copy "$site_only_dir"
+if (cd "$site_only_dir" && ./scripts/init.sh --site acme-site </dev/null) >/dev/null 2>&1; then
+  pass "titlecase: --site-only run exits 0 with no tty interaction"
+else
+  fail "titlecase: --site-only run exited nonzero"
+fi
+if grep -qxF 'SITE_LABEL=Acme Site' "$site_only_dir/template.answers" 2>/dev/null; then
+  pass "titlecase: --site acme-site derives a non-empty SITE_LABEL (Acme Site)"
+else
+  fail "titlecase: --site acme-site produced an unexpected or empty SITE_LABEL ($(grep '^SITE_LABEL=' "$site_only_dir/template.answers" 2>/dev/null))"
+fi
+rm -rf "$site_only_dir"
 
 # Flag validation: a bad value must fail before any prompt, and a repeat run
 # must refuse.
