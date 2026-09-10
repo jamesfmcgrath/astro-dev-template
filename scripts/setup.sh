@@ -192,6 +192,7 @@ interface Props {
 }
 const { name } = Astro.props;
 ---
+
 <p>Hello, {name}!</p>
 ASTRO
   cat > src/components/Greeting.test.ts <<'TS'
@@ -341,6 +342,22 @@ if [ -n "$ADAPTER" ]; then
   pnpm astro add "$ADAPTER_ARG" --yes || warn "astro add $ADAPTER_ARG failed; add it later with: make add I=$ADAPTER_ARG"
 else
   info "Deploy target is static; no adapter to add."
+fi
+
+# --- Normalize formatting ---
+# create-astro's scaffold and "astro add" do not honour this project's
+# Prettier config: astro.config.mjs comes back double-quoted, without a
+# trailing comma or a final newline, and the scaffold's own src/ files (for
+# example src/pages/index.astro) do not match it either. Left alone, "make
+# format-check" fails on a project straight out of setup.sh. Run once
+# Prettier is installed, after every step above that writes or rewrites
+# files. Paths match the Makefile's FMT_PATHS; keep the two in step.
+if dep_present prettier; then
+  info "Formatting the scaffold to match this project's Prettier config..."
+  pnpm exec prettier --write src astro.config.mjs eslint.config.mjs vitest.config.ts \
+    || warn "Prettier formatting pass failed; run 'make format' by hand."
+else
+  warn "Prettier not installed; skipping the formatting pass. Run 'make format' by hand."
 fi
 
 echo ""
