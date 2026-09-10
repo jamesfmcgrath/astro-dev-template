@@ -1,0 +1,28 @@
+// ESLint flat config. typescript-eslint's config is spread before
+// eslint-plugin-astro's, not after: eslint-plugin-astro's base config
+// assigns astro-eslint-parser to *.astro files, and typescript-eslint's
+// config sets a parser with no `files` restriction, so loading it second
+// would overwrite that assignment and break Astro frontmatter parsing.
+// See CONVENTIONS.md, "Quality toolchain".
+import js from '@eslint/js';
+import eslintPluginAstro from 'eslint-plugin-astro';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+
+export default [
+  { ignores: ['dist/**', '.astro/**', 'node_modules/**'] },
+  js.configs.recommended,
+  // js.configs.recommended turns on no-undef, which needs to know what is
+  // global or every console.log in a plain .js file is an error. TypeScript
+  // files do not need this (typescript-eslint switches no-undef off for
+  // them, the compiler already checks it) and .astro files do not either
+  // (eslint-plugin-astro's base config supplies Astro's own globals plus
+  // node for frontmatter and browser for client scripts). That leaves plain
+  // JS, which here means root-level config such as astro.config.mjs: Node.
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    languageOptions: { globals: { ...globals.node } },
+  },
+  ...tseslint.configs.recommended,
+  ...eslintPluginAstro.configs.recommended,
+];

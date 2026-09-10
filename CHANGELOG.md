@@ -36,8 +36,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   dev toolbar audits treated as lint, WCAG 2.2 AA. `CLAUDE.md` is the
   `@AGENTS.md` import stub.
 - `.github/workflows/ci.yml` with the guard-job inversion: the template job
-  runs the regression suite while `package.json` is absent, the project jobs
-  run `make check`, `make lint`, `make test` and `make build` once it exists.
+  runs the regression suite while `package.json` is absent, the project job
+  runs `make check`, `make lint`, `make format-check`, `make spell`,
+  `make test` and `make build`, in that order, once it exists.
+- `eslint.config.mjs`, `.prettierrc.json`, `vitest.config.ts`, `cspell.json`:
+  quality toolchain config at the template root. `scripts/setup.sh` installs
+  the matching devDependencies and writes a self-contained sample component
+  and test (`src/components/Greeting.astro` / `.test.ts`) once the scaffold
+  exists. `make lint`, `make lint-fix`, `make format`, `make format-check`
+  and `make test` now work on a created project; all five no-op cleanly with
+  a message on the bare template, which ships no `src/`.
 - `template-docs/PROMPTS.md` and `template-docs/memory.md` (maintainer only,
   removed by `init.sh`).
 
@@ -52,6 +60,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `eslint-plugin-astro` 3.1.0 plus `prettier-plugin-astro` 1.0.0 remain the
   mature choice over Biome 2.5.12, which still lists Astro parsing, formatting
   and linting as experimental and supports no plugins for it.
+- `eslint-plugin-astro` 3.1.0 peer-requires ESLint `>=10.0.0`; its flat
+  config must load after `typescript-eslint`'s, or `typescript-eslint`'s
+  parser assignment overwrites `astro-eslint-parser` for `.astro` files.
+  `eslint-plugin-jsx-a11y` cannot be installed alongside it yet (its peer
+  range caps at ESLint `^9`). `typescript-eslint` 8.70.0 peer-requires
+  `typescript >=4.8.4 <6.1.0`, which our `^6` pin (currently `6.0.3`)
+  satisfies today. Full detail and reopen triggers in `CONVENTIONS.md`,
+  "Quality toolchain".
 
 ### Verified live (2026-09-09)
 
@@ -78,6 +94,7 @@ with 0 errors and `make build`. Per-combination detail is in
 ### Needs live verification
 
 - blog on ssr and starlight on ssr.
-- The `quality` and `build` CI jobs, which cannot run until a project exists.
-- `make lint`, `make format`, `make test` and `make spell`, which have no
-  configuration behind them until Stage 2.
+- The restructured `quality` CI job (`check`, `lint`, `format-check`,
+  `spell`, `test`, `build` in one job). Passed locally against a scaffolded
+  minimal project on 2026-09-10 (see `template-docs/memory.md`); has not yet
+  run in GitHub Actions on a created project.

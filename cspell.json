@@ -1,0 +1,31 @@
+{
+  "version": "0.2",
+  "language": "en-GB",
+  "words": [
+    "astro",
+    "starlight",
+    "pnpm",
+    "corepack",
+    "frontmatter",
+    "worktrees",
+    "destructures",
+    "WCAG",
+    "reflow",
+    "flexbox",
+    "localgov",
+    "vitest",
+    "vercel",
+    "astrojs",
+    "esbuild",
+    "color",
+    "jamesfmcgrath",
+    "mktemp"
+  ],
+  "ignorePaths": [
+    "pnpm-lock.yaml",
+    "template.answers",
+    "dist/**",
+    ".astro/**",
+    "node_modules/**"
+  ]
+}

@@ -21,7 +21,11 @@ and was not observed.
   passes 257/257. Four of the six flavour/deploy-target combinations verified
   live on 2026-09-09, which found and fixed four real bugs in `setup.sh`; see
   `memory.md`. blog/ssr and starlight/ssr still need a live run.
-- **Stage 2, quality toolchain: PENDING.**
+- **Stage 2, quality toolchain: DONE.** ESLint (`eslint-plugin-astro`) plus
+  Prettier (`prettier-plugin-astro`), decided 2026-09-09 over Biome (still
+  experimental for Astro). `typescript-eslint`'s parser must load before
+  `eslint-plugin-astro`'s in `eslint.config.mjs`, or Astro frontmatter
+  parsing breaks. Full rationale and reopen triggers in `CONVENTIONS.md`.
 - **Stage 3, browser checks: PENDING.**
 - **Stage 4, flavour and deploy-target axes proven live: PENDING.**
 - **Stage 5, astro-expert skill: PENDING.**

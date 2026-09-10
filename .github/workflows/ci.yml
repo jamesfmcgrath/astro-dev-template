@@ -53,15 +53,11 @@ jobs:
       - uses: actions/checkout@v7
       - run: ./scripts/test-template.sh
 
-  # Needs live verification: the two project jobs below are validated for YAML
-  # syntax only. They cannot run on the bare template by design, and no project
-  # has been created from this template yet.
-  # make lint and make test also depend on the quality toolchain wiring that is
-  # Stage 2 in template-docs/PROMPTS.md (ESLint, Prettier, Vitest, CSpell
-  # configuration and devDependencies). Until Stage 2 lands, those two steps
-  # will fail on a created project.
+  # Needs live verification: this job has never actually run. It cannot run
+  # on the bare template (guarded out above), and no project has been created
+  # from this template and pushed yet to exercise it for real.
   quality:
-    name: Type check, lint, test
+    name: Type check, lint, format check, spell, test, build
     needs: guard
     if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
@@ -78,21 +74,12 @@ jobs:
         run: make check
       - name: Lint (ESLint)
         run: make lint
+      - name: Format check (Prettier)
+        run: make format-check
+      - name: Spell check (CSpell)
+        run: make spell
       - name: Unit tests (Vitest)
         run: make test
-
-  build:
-    name: Build
-    needs: guard
-    if: needs.guard.outputs.run == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - run: corepack enable pnpm
-      - run: pnpm install --frozen-lockfile
       - name: Production build
         run: make build
 

@@ -1,6 +1,6 @@
 # Project memory: astro-dev-template
 
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 
 ## What this is
 
@@ -46,6 +46,44 @@ has actually happened. Nothing here is inferred.
 
 Environment for the runs above: macOS 15 (Darwin 25.6.0), Node 26.8.1
 (Homebrew), pnpm 12.3.4, Astro 7.3.2, create-astro 5.2.4.
+
+## Quality toolchain verification
+
+Live on 2026-09-10, minimal/static, Node 26.8.1, pnpm 12.3.4: `setup.sh`
+installed the quality-toolchain devDependencies and wrote the sample test.
+`make check`, `make lint`, `make format-check`, `make spell`, `make test` (1
+passed) and `make build` all passed. Three real fixes were needed first,
+none of which were exercised for real before this task: `.prettierrc.json`
+had no `singleQuote` setting, so Prettier's double-quote default disagreed
+with the single-quote style already used throughout the repo's own
+`eslint.config.mjs`, `vitest.config.ts` and the sample test `setup.sh`
+writes; `setup.sh`'s `Greeting.astro` heredoc was missing the blank line
+`prettier-plugin-astro` requires after the frontmatter fence; and neither
+`create-astro`'s scaffold nor `astro add` honour this project's Prettier
+config at all (wrong quotes, no trailing comma, no final newline on
+`astro.config.mjs`; the scaffold's own `src/pages/index.astro` mismatched
+too), so `setup.sh` now runs a `prettier --write` pass over the scaffold once
+the toolchain is installed. Separately, `cspell.json` had no `ignorePaths`
+and had only ever been dry-tested against the bare template: against a real
+scaffold its `words` list was missing genuine project vocabulary (WCAG,
+worktrees, vitest, vercel, astrojs, esbuild, and so on) and it was spell
+checking `pnpm-lock.yaml` wholesale, over 300 false hits from package and
+dependency names. Both are fixed; `make spell` is 0 issues, including a
+post-`make build` re-run to confirm `dist/` (gitignored) is not scanned. The
+restructured GitHub Actions `quality` job itself has not run in CI yet; that
+still needs a real push from a created project.
+
+Caveat added by the final whole-branch review (2026-09-10): that
+post-`make build` re-run passed only because `dist/` happened to hold nothing
+CSpell objected to, not because `cspell.json` excluded it. `ignorePaths` had
+no `dist/**`, `.astro/**` or `node_modules/**` entry, so `.astro/` (which
+`astro check` generates before `make spell` runs in CI, and which on a
+content-collection flavour serialises whole collections into
+`data-store.json`) and `dist/` were both in scope. All three are now in
+`ignorePaths`. Note also that `make spell` has been run live on
+minimal/static only: the `blog`, `starlight` and `ssr` combinations have not
+been spell checked against a real scaffold, which is Stage 4's job per
+`PROMPTS.md`, not Stage 2's.
 
 ## Bugs found by the live runs (2026-09-09)
 
@@ -110,19 +148,16 @@ Read from the npm registry and the published packages, not from memory:
   `netlify`, `vercel`, `cloudflare`.
 - `@astrojs/check` 0.9.10, `@astrojs/sitemap` 3.7.4, `@astrojs/node` 11.1.5,
   `@astrojs/starlight` 0.42.0.
-- `eslint-plugin-astro` 3.1.0, `prettier-plugin-astro` 1.0.0. Biome 2.5.12
-  lists Astro as experimental for parsing, formatting and linting, and
-  unsupported for plugins, so the ESLint plus Prettier pair stays the choice.
+- `eslint-plugin-astro` 3.1.0, `typescript-eslint` 8.70.0, `prettier` 3.9.6,
+  `prettier-plugin-astro` 1.0.0, `vitest` 5.0.0, `cspell` 10.3.0. Confirmed
+  live in a throwaway sandbox (not just read from the registry): the flat
+  config order matters (`typescript-eslint` before `eslint-plugin-astro`, or
+  the astro parser gets overwritten), `eslint-plugin-jsx-a11y` cannot install
+  alongside ESLint 10, and `typescript-eslint`'s `typescript <6.1.0` peer
+  range still fits our `^6` pin because only `6.0.x` has shipped.
 - GitHub Actions: `actions/checkout` v7.0.1, `actions/setup-node` v7.0.0.
 
 ## Open questions
 
-- Quality toolchain: flat-config ESLint plus Prettier is the assumed answer,
-  but the decision and the wiring are Stage 2 and not made yet. Until then
-  `make lint`, `make format`, `make test` and `make spell` have no
-  configuration or devDependencies behind them, and the `quality` CI job will
-  fail on a created project.
 - Whether `starlight` should be offered on `ssr` at all.
-- The `quality` and `build` CI jobs have never run. They cannot, until a
-  project created from this template pushes with a `package.json` present.
 - `make dev` has been exercised on minimal/static only.

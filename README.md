@@ -69,11 +69,6 @@ make add I=<name>  Add an Astro integration or adapter
 make clean         Remove dist/ and .astro/
 ```
 
-`make lint`, `make format`, `make test` and `make spell` need the quality
-toolchain wired up first. That is Stage 2 in the template's `PROMPTS.md` and
-has not landed yet, so those four targets will not work on a project created
-today.
-
 ## Changing the deploy target
 
 `{{DEPLOY_TARGET}}` decided whether an adapter was installed. To change it
