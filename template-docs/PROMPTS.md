@@ -44,8 +44,9 @@ and was not observed.
   script, `scripts/browser-check.sh`, backs `make a11y` / `make vrt` /
   `make vrt-update`; a `browser` CI job inlines its own build-serve sequence.
   Full rationale in `CONVENTIONS.md`, "Browser checks". Verified live
-  against a scaffolded project on 2026-09-10; see `memory.md`, "Browser
-  checks verification", for exactly what ran. The `browser` GitHub Actions
+  against scaffolded minimal, blog and starlight projects on 2026-09-10, four
+  real fixes needed first; see `memory.md`, "Browser checks verification", for
+  exactly what ran and what was left for Stage 4. The `browser` GitHub Actions
   job itself has never run for real: that needs a push from a created
   project, same caveat Stage 2's `quality` job still carries.
 - **Stage 4, flavour and deploy-target axes proven live: PENDING.**
@@ -93,6 +94,11 @@ verification status table in `memory.md`. For each: `init.sh` with flags,
 and fix what breaks. Four combinations were already done on 2026-09-09
 (minimal/static, minimal/ssr, blog/static, starlight/static); what remains is
 blog/ssr and starlight/ssr, plus `make dev` on everything but minimal/static.
+Stage 3's live run already found two things waiting here: on blog, `make lint`
+fails on the starter's own `HeaderLink.astro` and `make spell` reports over a
+thousand hits on its Lorem ipsum prose; on starlight, `make spell` reports four
+(`evenodd`, `Diátaxis`). Decide whether each is a config change or content a
+real project deletes.
 The scaffold merge turned out to be undramatic: the starters ship their own
 `README.md`, `.gitignore` and `.vscode/extensions.json`, all three of which the
 template keeps, and starlight copied 10 files without incident. Decide from the

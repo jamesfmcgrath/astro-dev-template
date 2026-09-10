@@ -96,6 +96,52 @@ content; that still needs a project created from this template to push with a
 scaffolded `package.json` present. Do not read "Actions were green" as
 confirmation the quality job ran.
 
+## Browser checks verification
+
+Live on 2026-09-10, minimal/static, blog/static and starlight/static, Node
+26.8.1, pnpm 12.3.4, astro 7.3.2: `setup.sh` installed the browser-check
+devDependencies (`@axe-core/playwright` 4.13.0, `@playwright/test` 1.63.0) and
+the Playwright Chromium browser (Chrome for Testing 153.0.8010.12, 182 MiB,
+plus the 94 MiB headless shell), both first time, exit 0. `scan-urls.json`
+matched the documented default for every flavour (`["/"]`,
+`["/", "/blog/first-post/"]`, `["/", "/guides/example/"]`), and `make build`
+produced a real `index.html` at each non-front-page path
+(`dist/blog/first-post/index.html`, `dist/guides/example/index.html`), so
+neither scanned path is a 404.
+
+On minimal/static, `make check`, `make lint`, `make format-check`, `make
+spell`, `make test` (1 passed), `make build`, `make a11y` and `make vrt` all
+passed, the last after the expected first-run baseline write. `make a11y`
+reported no violations across the scanned pages on all three flavours
+(`wcag2a, wcag2aa, wcag21aa, wcag22aa`), 1 page on minimal and 2 on both blog
+and starlight. `make vrt` on this macOS machine generated advisory baselines
+under `tests/vrt/__screenshots__/darwin/` (gitignored, confirmed with `git
+check-ignore`; the `linux/` path is not ignored, so real baselines stay
+committable) and are not committed. The first `make vrt` of a project always
+exits non-zero: Playwright writes the missing baseline and reports the run as
+failed, and the immediate re-run passes. That is Playwright's own behaviour,
+not a template bug, and is now written down in `README.md` so it does not read
+as a broken toolchain.
+
+Three fixes were needed before minimal/static was green (`vitest.config.ts`,
+`cspell.json`, Prettier drift) and one more before the blog run could be
+trusted at all (the leaked preview server); all four are in the bugs section
+below.
+
+Two failures were left unfixed on purpose, because they are scaffold content
+rather than template files and Stage 4 owns the flavour axes: on blog,
+`make lint` fails on the starter's own `src/components/HeaderLink.astro`
+(`no-useless-escape`) and `make spell` reports 1357 issues, almost all of them
+the starter's Lorem ipsum placeholder prose; on starlight, `make spell`
+reports 4 (`evenodd` twice in the starter's `public/favicon.svg`, `Diátaxis`
+twice in its example docs). Everything else passed on both. Stage 4 should
+decide whether that is a `cspell.json` change, an ESLint ignore, or simply
+content a real project deletes on day one.
+
+The `browser` GitHub Actions job itself has not run yet: that needs a push
+from a project created from this template, same as the `quality` job's
+still-open verification gap.
+
 ## Bugs found by the live runs (2026-09-09)
 
 All four were found by running the thing, none by reading it. Each is fixed and
@@ -126,6 +172,50 @@ commented at the fix site.
    (`node`, `cloudflare`, `vercel`, `netlify`) registers the adapter.
    `setup.sh` now strips the `@astrojs/` scope before calling `astro add`, and
    the README and Makefile say to use short names.
+
+## Bugs found by the browser-checks live run (2026-09-10)
+
+Same rule as the four above: found by running it, fixed, commented at the fix
+site. The first three were found by the first `make lint` / `make spell` /
+`setup.sh` on a real scaffold, the fourth by a flavour switch.
+
+1. **`vitest.config.ts` failed `make lint`.** Adding
+   `import { configDefaults } from 'vitest/config'` for the `tests/vrt`
+   exclude left the file importing and triple-slash-referencing the same
+   module, which is precisely what
+   `@typescript-eslint/triple-slash-reference`'s default `prefer-import`
+   setting rejects. The reference is redundant once the import exists, so it
+   is gone; a comment in `vitest.config.ts` says why, so it is not re-added.
+   Nothing caught this before, because `test-template.sh` only syntax checks
+   and nobody had run `make lint` on a scaffold since Stage 2.
+2. **`cspell.json` was missing the bash-portability vocabulary.**
+   `CONVENTIONS.md`'s portability floor uses `titlecase`, `readlink`,
+   `mapfile` and `readarray`; none had been added to the word list when that
+   text landed, so `make spell` failed on the template's own documentation.
+   Fixed in `cspell.json`.
+3. **Three tracked files did not match this project's Prettier config.**
+   `playwright.config.mjs`, `scripts/a11y-scan.mjs` and
+   `tests/vrt/vrt.spec.mjs` were shipped unformatted. Nothing failed, because
+   `setup.sh`'s formatting pass rewrites them during spin-up, which is exactly
+   the problem: a new project's first `git diff` carried formatting-only churn
+   in template files it had never touched. All three are now formatted; the
+   `setup.sh` pass now reports them `(unchanged)`.
+4. **`browser-check.sh` leaked the preview server, and the leak silently
+   corrupted the next run.** Astro 7's `astro preview` is a detached daemon: it
+   starts the server, prints its address and exits, so `$!` was the pnpm
+   wrapper and killing it left the real server alive holding port 4321. Astro
+   then *silently* falls back to the next free port when 4321 is taken, so the
+   readiness `curl` in the next run succeeded against the leftover server and
+   the checks scanned a stale build with no warning. That showed up as a blog
+   scaffold reporting `[LOAD FAILURE] ... 404` on `/blog/first-post/` while
+   `dist/blog/first-post/index.html` plainly existed: the scan was hitting a
+   minimal-flavour server left over from an earlier run. `browser-check.sh`
+   now starts the server with `--background`, stops it with `astro preview
+   stop` in its exit trap, and refuses to run at all when something already
+   answers on the port. The CI job starts its server the same explicit way
+   rather than relying on the same undocumented auto-detach. Worth
+   remembering: `astro preview stop`, `status` and `logs` are the Astro 7
+   interface for this, not signals.
 
 ## Known non-bugs
 
