@@ -85,6 +85,17 @@ minimal/static only: the `blog`, `starlight` and `ssr` combinations have not
 been spell checked against a real scaffold, which is Stage 4's job per
 `PROMPTS.md`, not Stage 2's.
 
+Stage 2 merged into `main` 2026-09-10 (PR #1). GitHub Actions ran on the merge
+commit and passed: `guard` and `Template regression suite` both succeeded
+(confirmed via `gh run view`, not inferred). The `quality` job itself reported
+`skipped`, not `success`: `main` is still the bare template with no
+`package.json`, so the guard condition that gates it never fires here. The
+restructured `quality` CI job (`check`, `lint`, `format-check`, `spell`,
+`test`, `build`) has therefore still never run in GitHub Actions on real
+content; that still needs a project created from this template to push with a
+scaffolded `package.json` present. Do not read "Actions were green" as
+confirmation the quality job ran.
+
 ## Bugs found by the live runs (2026-09-09)
 
 All four were found by running the thing, none by reading it. Each is fixed and
@@ -161,3 +172,19 @@ Read from the npm registry and the published packages, not from memory:
 
 - Whether `starlight` should be offered on `ssr` at all.
 - `make dev` has been exercised on minimal/static only.
+- `scripts/init.sh`'s `titlecase()` (used to derive `SITE_LABEL` when
+  `--site-label` is not passed) runs `tr '-_' '  '`. BSD `tr` (macOS) reads
+  the leading `-` of `'-_'` as an option flag and errors
+  (`tr: illegal option -- _`), so `SITE_LABEL` comes out empty on any real
+  `init.sh` run that relies on the default, including `--defaults`. Found
+  live twice during Stage 2 (by an implementer and independently by a
+  reviewer), confirmed unrelated to Stage 2's own changes, and left unfixed
+  since `init.sh`'s token logic was out of scope for that stage. Needs its
+  own fix plus a `scripts/test-template.sh` assertion, since every combo the
+  suite currently runs passes `--site-label` explicitly and so never
+  exercises the buggy default path.
+- Five commits on the Stage 2 branch (now on `main`) are missing or carry an
+  incorrect `Co-Authored-By` attribution trailer; a batch `git filter-branch`
+  fix was attempted and blocked by session permission controls, and was left
+  unresolved rather than worked around. Metadata only, no file content
+  affected.

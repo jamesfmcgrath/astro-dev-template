@@ -12,7 +12,7 @@ tokens and GitHub Actions `${{ }}` expressions must never be touched; anything
 not actually executed is labelled "needs live verification" and says what was
 and was not observed.
 
-## Status (2026-09-09)
+## Status (2026-09-10)
 
 - **Stage 1, foundation: DONE.** `CONVENTIONS.md`, `scripts/init.sh`,
   `scripts/setup.sh`, `scripts/test-template.sh`, `Makefile`, `AGENTS.md`,
@@ -21,11 +21,22 @@ and was not observed.
   passes 257/257. Four of the six flavour/deploy-target combinations verified
   live on 2026-09-09, which found and fixed four real bugs in `setup.sh`; see
   `memory.md`. blog/ssr and starlight/ssr still need a live run.
-- **Stage 2, quality toolchain: DONE.** ESLint (`eslint-plugin-astro`) plus
-  Prettier (`prettier-plugin-astro`), decided 2026-09-09 over Biome (still
-  experimental for Astro). `typescript-eslint`'s parser must load before
-  `eslint-plugin-astro`'s in `eslint.config.mjs`, or Astro frontmatter
-  parsing breaks. Full rationale and reopen triggers in `CONVENTIONS.md`.
+- **Stage 2, quality toolchain: DONE, merged into `main` 2026-09-10 (PR #1).**
+  ESLint (`eslint-plugin-astro` plus `typescript-eslint`) plus Prettier
+  (`prettier-plugin-astro`), decided 2026-09-09 over Biome (still
+  experimental for Astro), plus Vitest and CSpell. `typescript-eslint`'s
+  config must load before `eslint-plugin-astro`'s in `eslint.config.mjs`, or
+  Astro frontmatter parsing breaks. Full rationale and reopen triggers in
+  `CONVENTIONS.md`. Verified live against a scaffolded minimal/static
+  project (regression suite 287/287); GitHub Actions on `main` post-merge
+  ran the `guard` and `Template regression suite` jobs green, but the
+  restructured `quality` job itself reported `skipped` (`main` has no
+  `package.json`) and still has never run for real; see `memory.md`,
+  "Quality toolchain verification". Two items found live and deliberately
+  left unfixed as out of this stage's scope: `scripts/init.sh`'s
+  `titlecase()` breaks on BSD `tr` (macOS), leaving `SITE_LABEL` empty on a
+  real run that does not pass `--site-label`; and `blog`/`starlight`/`ssr`
+  have not been exercised against this toolchain, which is Stage 4's job.
 - **Stage 3, browser checks: PENDING.**
 - **Stage 4, flavour and deploy-target axes proven live: PENDING.**
 - **Stage 5, astro-expert skill: PENDING.**
