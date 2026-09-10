@@ -174,18 +174,19 @@ else
   cleanup_scaffold
   trap - EXIT
   success "Astro scaffold in place ($ASTRO_TEMPLATE)."
-fi
 
-# --- Sample test ---
-# A self-contained component and test that does not depend on anything the
-# create-astro scaffold provides, so `make test` has something real to run
-# immediately after setup, on every flavour. Copy the pattern for real
-# components, or delete this one once real tests exist.
-if [ -f src/components/Greeting.test.ts ]; then
-  info "Sample test already present (src/components/Greeting.test.ts); leaving it alone."
-else
-  mkdir -p src/components
-  cat > src/components/Greeting.astro <<'ASTRO'
+  # --- Sample test ---
+  # A self-contained component and test that does not depend on anything the
+  # create-astro scaffold provides, so `make test` has something real to run
+  # immediately after setup, on every flavour. Copy the pattern for real
+  # components, or delete this one once real tests exist: it is written only
+  # here, while the scaffold is being generated, so a later re-run of setup.sh
+  # never brings a deleted sample back.
+  if [ -f src/components/Greeting.test.ts ]; then
+    info "Sample test already present (src/components/Greeting.test.ts); leaving it alone."
+  else
+    mkdir -p src/components
+    cat > src/components/Greeting.astro <<'ASTRO'
 ---
 interface Props {
   name: string;
@@ -195,7 +196,7 @@ const { name } = Astro.props;
 
 <p>Hello, {name}!</p>
 ASTRO
-  cat > src/components/Greeting.test.ts <<'TS'
+    cat > src/components/Greeting.test.ts <<'TS'
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { describe, expect, test } from 'vitest';
 import Greeting from './Greeting.astro';
@@ -210,7 +211,8 @@ describe('Greeting', () => {
   });
 });
 TS
-  success "Sample test written (src/components/Greeting.astro + Greeting.test.ts)."
+    success "Sample test written (src/components/Greeting.astro + Greeting.test.ts)."
+  fi
 fi
 
 if [ "$SKIP_INSTALL" = "1" ]; then
@@ -308,10 +310,17 @@ fi
 # Biome; typescript-eslint for typed linting. Decision, date and reopen
 # triggers are in CONVENTIONS.md, "Quality toolchain". eslint-plugin-jsx-a11y
 # is deliberately not installed: see the same section for why.
-QUALITY_DEPS=(eslint eslint-plugin-astro typescript-eslint prettier prettier-plugin-astro vitest cspell)
+#
+# @eslint/js is listed explicitly because eslint.config.mjs imports it for the
+# core rule set, and pnpm's isolated node_modules does not expose a transitive
+# dependency of eslint to the project. typescript-eslint is pinned to ^8 for
+# the same reason typescript is pinned to ^6 above: its flat-config ordering
+# behaviour and its typescript peer range are verified against 8.70.0.
+QUALITY_DEPS=("@eslint/js" eslint eslint-plugin-astro "typescript-eslint@^8" prettier prettier-plugin-astro vitest cspell)
 missing_quality=()
-for dep in "${QUALITY_DEPS[@]}"; do
-  dep_present "$dep" || missing_quality+=("$dep")
+for spec in "${QUALITY_DEPS[@]}"; do
+  dep="${spec%@^*}"
+  dep_present "$dep" || missing_quality+=("$spec")
 done
 if [ "${#missing_quality[@]}" -gt 0 ]; then
   info "Installing quality-toolchain dependencies: ${missing_quality[*]}"
