@@ -332,6 +332,29 @@ else
   success "Quality-toolchain dependencies already present."
 fi
 
+# --- Browser checks ---
+# axe-core (via @axe-core/playwright) for accessibility, @playwright/test for
+# both that and the visual regression spec. Contract is in CONVENTIONS.md,
+# "Browser checks". Neither package needs a version pin: verified live
+# against the npm registry, no peer range collides with anything else this
+# template installs.
+BROWSER_DEPS=("@axe-core/playwright" "@playwright/test")
+missing_browser=()
+for spec in "${BROWSER_DEPS[@]}"; do
+  dep="${spec%@^*}"
+  dep_present "$dep" || missing_browser+=("$spec")
+done
+if [ "${#missing_browser[@]}" -gt 0 ]; then
+  info "Installing browser-check dependencies: ${missing_browser[*]}"
+  pnpm add -D "${missing_browser[@]}" || warn "Could not install ${missing_browser[*]}; make a11y/vrt will not work."
+else
+  success "Browser-check dependencies already present."
+fi
+
+info "Installing the Playwright Chromium browser..."
+pnpm exec playwright install chromium \
+  || warn "Playwright browser install failed; run 'pnpm exec playwright install chromium' by hand before make a11y/make vrt."
+
 # --- Integrations ---
 # astro add is idempotent: an integration already in astro.config is left as is.
 for integration in "${DEFAULT_INTEGRATIONS[@]}"; do
@@ -367,6 +390,7 @@ fi
 if dep_present prettier; then
   info "Formatting the scaffold to match this project's Prettier config..."
   pnpm exec prettier --write src astro.config.mjs eslint.config.mjs vitest.config.ts \
+    playwright.config.mjs scripts/a11y-scan.mjs tests \
     || warn "Prettier formatting pass failed; run 'make format' by hand."
 else
   warn "Prettier not installed; skipping the formatting pass. Run 'make format' by hand."

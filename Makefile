@@ -42,7 +42,7 @@ preview: ## Serve the production build locally
 # eslint.config.mjs, vitest.config.ts) are covered by Prettier alongside src/;
 # ESLint and Vitest find them on their own once src/ exists.
 GUARD_SRC = [ -d src ] && [ -d node_modules ] || { echo "No src/ or node_modules yet; skipping $@."; exit 0; }
-FMT_PATHS = src astro.config.mjs eslint.config.mjs vitest.config.ts
+FMT_PATHS = src astro.config.mjs eslint.config.mjs vitest.config.ts playwright.config.mjs scripts/a11y-scan.mjs tests
 
 check: ## Type check .astro and TypeScript (astro check)
 	$(PNPM) astro check
