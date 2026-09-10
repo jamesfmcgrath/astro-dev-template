@@ -51,11 +51,28 @@ info "Building the production site (astro build)..."
 pnpm astro build
 
 info "Starting the preview server ($BASE_URL)..."
+# Set before the call, not after: --background means the server can be up even
+# when the command that started it reports a failure, and the trap has to know.
+SERVER_STARTED=1
 pnpm astro preview --background --port 4321 >"$LOG_FILE" 2>&1 || {
   cat "$LOG_FILE" >&2
   die "Could not start the preview server."
 }
-SERVER_STARTED=1
+
+# Assert the port from what the server itself reported, not from a probe.
+# astro preview falls back to the next free port without failing, so a curl
+# against 4321 proves only that something answers there, which is exactly the
+# stale-build trap the pre-flight above is trying to close: a server that was
+# not yet answering at pre-flight time but is by now would take 4321, push
+# this run's server to 4322, and satisfy the readiness loop below.
+ACTUAL_URL="$(grep -o 'http://localhost:[0-9]\{1,\}' "$LOG_FILE" | head -n 1)"
+if [ -z "$ACTUAL_URL" ]; then
+  cat "$LOG_FILE" >&2
+  die "Could not read the preview server's address from its output."
+fi
+if [ "$ACTUAL_URL" != "$BASE_URL" ]; then
+  die "The preview server started on $ACTUAL_URL, not $BASE_URL: something else took the port. Stop it, then re-run."
+fi
 
 ready=false
 i=1

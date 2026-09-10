@@ -124,6 +124,18 @@ jobs:
           # buy nothing and the next step needs the server to outlive this one.
           pnpm astro preview --background --port 4321 >/tmp/astro-preview.log 2>&1
 
+          # Assert the port from what the server reported, not from a probe:
+          # astro preview falls back to the next free port without failing, so
+          # a 200 on 4321 would otherwise be taken as proof this server is the
+          # one answering. A fresh runner has nothing on the port, but a
+          # self-hosted one can carry a leftover daemon between runs.
+          actual="$(grep -o 'http://localhost:[0-9]\{1,\}' /tmp/astro-preview.log | head -n 1)"
+          if [ "$actual" != "http://localhost:4321" ]; then
+            echo "The preview server started on '${actual:-an address that could not be read}', not http://localhost:4321." >&2
+            cat /tmp/astro-preview.log
+            exit 1
+          fi
+
           ready=false
           for i in $(seq 1 30); do
             if curl -sSf http://localhost:4321/ >/dev/null 2>&1; then
@@ -178,4 +190,9 @@ jobs:
 
       - name: Stop the preview server
         if: always()
-        run: kill "$(cat /tmp/astro-preview.pid)" 2>/dev/null || true
+        # Same lifecycle as scripts/browser-check.sh's cleanup: Astro 7's
+        # preview server is a detached daemon, so it is stopped by name, not
+        # by a PID the shell never owned. A hosted runner is discarded either
+        # way; a self-hosted one would otherwise carry the daemon, and the
+        # port it holds, into the next run.
+        run: pnpm astro preview stop 2>/dev/null || true

@@ -1072,6 +1072,14 @@ Replace it with:
         run: kill "$(cat /tmp/astro-preview.pid)" 2>/dev/null || true
 ```
 
+Superseded by Task 10's live run (2026-09-10): the `&` plus `$!` plus `kill`
+pattern above does not work on Astro 7, whose preview server is a detached
+daemon, and `astro preview` silently falls back to the next free port rather
+than failing when 4321 is taken. The shipped job starts the server with
+`--background`, asserts the port from the address the server itself reports,
+and stops it with `astro preview stop`. See `memory.md`, "Bugs found by the
+browser-checks live run", bug 4. This block is left as written for the record.
+
 - [ ] **Step 2: Validate YAML and the ${{ }} invariant**
 
 ```bash
