@@ -71,6 +71,46 @@ CI run of its own instead of a run that skips everything.
 Lineage: inherited from localgov-drupal-dev-template, with `composer.json`
 swapped for `package.json`.
 
+## Quality toolchain
+
+Decided 2026-09-09: ESLint (`eslint-plugin-astro`) plus Prettier
+(`prettier-plugin-astro`) over Biome. Biome 2.5.12 still treats Astro
+parsing, formatting and linting as experimental and supports no plugins for
+it (verified against the published package). **Reopen this decision when
+Biome ships stable, non-experimental Astro support.**
+
+`typescript` stays pinned to `^6` in `scripts/setup.sh` (currently resolves
+to `6.0.3`). TypeScript 7's native compiler drops the programmatic API
+`@astrojs/check` depends on, so an unpinned install breaks `make check`.
+`typescript-eslint` 8.70.0 peer-requires `typescript >=4.8.4 <6.1.0`, which
+the `^6` pin still satisfies only because TypeScript's `6.x` line has not
+shipped past `6.0.x` yet. **Reopen the pin** when `@astrojs/check` supports
+TypeScript 7 (track
+https://github.com/withastro/roadmap/discussions/1321), **and re-check this
+range** if TypeScript ships `6.1.0` before `typescript-eslint` widens its
+peer range past it.
+
+`eslint.config.mjs` spreads `typescript-eslint`'s recommended config *before*
+`eslint-plugin-astro`'s, not after: `eslint-plugin-astro`'s `base` config
+assigns the `astro-eslint-parser` to `*.astro` files, and `typescript-eslint`'s
+config sets a parser with no `files` restriction, so if it loads second it
+overwrites that assignment and breaks Astro frontmatter parsing entirely
+(`Parsing error: Expression expected`, confirmed live with `--print-config`).
+
+`eslint-plugin-jsx-a11y` is deliberately not installed. It is an optional
+peer of `eslint-plugin-astro` (for the `jsx-a11y-recommended` /
+`jsx-a11y-strict` configs and the `astro/jsx-a11y/*` rules) but its own peer
+range caps at ESLint `^9`, while `eslint-plugin-astro` 3.1.0 requires ESLint
+`>=10.0.0`. The two cannot be installed together today. **Reopen** when
+`eslint-plugin-jsx-a11y` supports ESLint 10.
+
+Node note: `eslint-plugin-astro` 3.1.0's `engines` field wants Node
+`^22.22.3 || ^24.16.0 || >=26.3.0`, tighter than Astro's own `>=22.12.0`
+floor that `scripts/setup.sh`'s `MIN_NODE` enforces. `pnpm install` only
+warns on an engines mismatch (no `engine-strict` is set here), so this is
+not a hard failure, but a project running the oldest Node this template
+allows may see that warning on `pnpm install`.
+
 ## Agent resources
 
 - `AGENTS.md` is canonical and is the only file to edit. Cursor reads it
