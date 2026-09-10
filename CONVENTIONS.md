@@ -33,7 +33,11 @@ localgov-drupal-dev-template.
 ## Script contract
 
 All three scripts live in `scripts/`, are committed `100755`, are
-`#!/usr/bin/env bash`, and are portable across macOS (BSD) and Linux (GNU).
+`#!/usr/bin/env bash`, and are portable across macOS (BSD) and Linux (GNU). A
+fourth script, `scripts/browser-check.sh`, lives here too and is held to the
+same portability floor, but it is an ordinary dev-task helper, not part of the
+init/setup/test-template tokeniser lifecycle this section describes; see
+"Browser checks" below.
 
 **Portability floor: macOS bash 3.2 with BSD userland.** No GNU-only flag or
 behaviour is assumed. `cp -n`'s differing exit code across BSD and GNU (fixed
@@ -180,6 +184,22 @@ portability floor below. The `browser` CI job does the same build-serve
 sequence inline instead of calling that script, so it can run the
 accessibility scan and the visual regression test against one server rather
 than building and serving twice.
+
+Astro 7's `astro preview` detaches as a background daemon: the command prints
+the address it bound to and returns immediately, so a shell `&` and its `$!`
+PID buy nothing, and a later step still finds the server running with no
+process this session owns. `scripts/browser-check.sh` and the `browser` CI
+job's serve step both start it explicitly with `--background`, then read the
+address back from the server's own log output and assert it matches
+`http://localhost:4321`, because `astro preview` falls back silently to the
+next free port instead of failing when 4321 is already taken; a plain
+readiness probe on 4321 would not catch that fallback. Both also refuse to
+start at all if something already answers on port 4321 before the build even
+begins, a pre-flight check that catches the same silent-fallback failure mode
+one step earlier, before a build is wasted on it. Teardown is
+`astro preview stop`, not a process signal: the shell never owns a PID for a
+detached daemon, so killing the `pnpm` wrapper leaves the real server running
+and holding the port.
 
 Visual regression baselines are generated and compared on Linux only, because
 font rendering makes cross-OS baselines flaky, so only

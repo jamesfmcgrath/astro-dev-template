@@ -117,7 +117,7 @@ reported no violations across the scanned pages on all three flavours
 and starlight. `make vrt` on this macOS machine generated advisory baselines
 under `tests/vrt/__screenshots__/darwin/` (gitignored, confirmed with `git
 check-ignore`; the `linux/` path is not ignored, so real baselines stay
-committable) and are not committed. The first `make vrt` of a project always
+committable), which are not committed. The first `make vrt` of a project always
 exits non-zero: Playwright writes the missing baseline and reports the run as
 failed, and the immediate re-run passes. That is Playwright's own behaviour,
 not a template bug, and is now written down in `README.md` so it does not read
@@ -128,7 +128,7 @@ Three fixes were needed before minimal/static was green (`vitest.config.ts`,
 trusted at all (the leaked preview server); all four are in the bugs section
 below.
 
-Two failures were left unfixed on purpose, because they are scaffold content
+Three failures were left unfixed on purpose, because they are scaffold content
 rather than template files and Stage 4 owns the flavour axes: on blog,
 `make lint` fails on the starter's own `src/components/HeaderLink.astro`
 (`no-useless-escape`) and `make spell` reports 1357 issues, almost all of them

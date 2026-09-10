@@ -37,14 +37,14 @@ cleanup() {
   fi
   rm -f "$LOG_FILE"
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # A server already on the port is fatal rather than tolerated: astro preview
 # silently falls back to the next free port (4322) when 4321 is taken, and the
 # readiness check below would then pass against whatever the other server is
 # serving, scanning a stale build with no warning.
 if curl -sSf "$BASE_URL/" >/dev/null 2>&1; then
-  die "Something is already serving $BASE_URL. Stop it first ('pnpm astro preview stop' if it is a leftover preview server), then re-run."
+  die "Something is already serving $BASE_URL. Most likely a 'make dev' or a 'make preview' left running: stop 'make dev' with Ctrl-C, or if it is a leftover preview server run 'pnpm astro preview stop'. Then re-run."
 fi
 
 info "Building the production site (astro build)..."
@@ -65,7 +65,7 @@ pnpm astro preview --background --port 4321 >"$LOG_FILE" 2>&1 || {
 # stale-build trap the pre-flight above is trying to close: a server that was
 # not yet answering at pre-flight time but is by now would take 4321, push
 # this run's server to 4322, and satisfy the readiness loop below.
-ACTUAL_URL="$(grep -o 'http://localhost:[0-9]\{1,\}' "$LOG_FILE" | head -n 1)"
+ACTUAL_URL="$(grep -o 'http://localhost:[0-9]\{1,\}' "$LOG_FILE" | head -n 1 || true)"
 if [ -z "$ACTUAL_URL" ]; then
   cat "$LOG_FILE" >&2
   die "Could not read the preview server's address from its output."

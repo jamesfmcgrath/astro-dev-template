@@ -27,7 +27,7 @@ dev: ## Start the Astro dev server
 build: ## Production build
 	$(PNPM) astro build
 
-preview: ## Serve the production build locally
+preview: ## Serve the production build locally (detaches immediately; stop with 'pnpm astro preview stop')
 	$(PNPM) astro preview
 
 ## == Quality ==================================================================

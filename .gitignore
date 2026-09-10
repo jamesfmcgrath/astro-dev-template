@@ -34,7 +34,7 @@ yarn-error.log*
 # Playwright visual regression test (VRT) output. Baselines are generated and
 # compared on Linux/CI only (font rendering makes cross-OS baselines flaky);
 # only tests/vrt/__screenshots__/linux/ is authoritative and gets committed.
-# macOS-generated baselines stay local. Lands in Stage 3, see CONVENTIONS.md.
+# macOS-generated baselines stay local. See CONVENTIONS.md, "Browser checks".
 /tests/vrt/__screenshots__/darwin/
 /tests/vrt/__screenshots__/win32/
 /test-results/

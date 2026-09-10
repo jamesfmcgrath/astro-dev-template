@@ -94,7 +94,7 @@ verification status table in `memory.md`. For each: `init.sh` with flags,
 and fix what breaks. Four combinations were already done on 2026-09-09
 (minimal/static, minimal/ssr, blog/static, starlight/static); what remains is
 blog/ssr and starlight/ssr, plus `make dev` on everything but minimal/static.
-Stage 3's live run already found two things waiting here: on blog, `make lint`
+Stage 3's live run already found three things waiting here: on blog, `make lint`
 fails on the starter's own `HeaderLink.astro` and `make spell` reports over a
 thousand hits on its Lorem ipsum prose; on starlight, `make spell` reports four
 (`evenodd`, `Diátaxis`). Decide whether each is a config change or content a

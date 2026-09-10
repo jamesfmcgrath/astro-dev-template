@@ -103,6 +103,12 @@ generated on (`tests/vrt/__screenshots__/linux/…`,
   exist, a genuine diff fails the job and the Playwright HTML report uploads
   as an artifact.
 
+`make a11y` and `make vrt` refuse to start if anything already answers on
+port 4321: a running `make dev`, or a `make preview` left over from an
+earlier session (it detaches immediately and keeps running after the command
+returns to the shell). Stop `make dev` with Ctrl-C, or run
+`pnpm astro preview stop` to end a lingering preview server, then re-run.
+
 See `CONVENTIONS.md`, "Browser checks", for the full contract.
 
 ## Changing the deploy target

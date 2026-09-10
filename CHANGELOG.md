@@ -48,6 +48,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   a message on the bare template, which ships no `src/`.
 - `template-docs/PROMPTS.md` and `template-docs/memory.md` (maintainer only,
   removed by `init.sh`).
+- Browser checks: `scan-urls.json`, set per flavour by `init.sh` (`["/"]` for
+  `minimal`, plus one real content page for `blog` and `starlight`).
+  `scripts/a11y-scan.mjs`: an accessibility scan (axe-core via Playwright,
+  WCAG 2.2 AA) adapted from `localgov-drupal-dev-template`.
+  `playwright.config.mjs` and `tests/vrt/vrt.spec.mjs`: visual regression
+  testing (`@playwright/test`'s `toHaveScreenshot`), full-page screenshots
+  with animations disabled, baselines generated and compared on Linux only.
+  `scripts/setup.sh` installs the browser-check devDependencies
+  (`@axe-core/playwright`, `@playwright/test`) and the Playwright Chromium
+  browser. `scripts/browser-check.sh`: a fourth committed script, alongside
+  `init.sh`/`setup.sh`/`test-template.sh` but not part of their tokeniser
+  lifecycle; builds, serves the build with `astro preview`, runs the
+  requested check, and always tears the server down. `Makefile`: `a11y`,
+  `vrt` and `vrt-update` targets. `.github/workflows/ci.yml`: a `browser`
+  job, guarded like `quality`, running the accessibility scan and the visual
+  regression test against one inline build-serve sequence, with a first-run
+  path that generates and uploads a missing Linux baseline instead of
+  failing.
 
 ### Verified
 
@@ -98,3 +116,9 @@ with 0 errors and `make build`. Per-combination detail is in
   `spell`, `test`, `build` in one job). Passed locally against a scaffolded
   minimal project on 2026-09-10 (see `template-docs/memory.md`); has not yet
   run in GitHub Actions on a created project.
+- The `browser` CI job (accessibility scan plus visual regression test). Its
+  build-serve-scan sequence passed locally against scaffolded minimal, blog
+  and starlight projects on 2026-09-10, through the normal `make a11y` /
+  `make vrt` path (see `template-docs/memory.md`, "Browser checks
+  verification"); the job itself, and its baseline-generation branch
+  specifically, have not yet run in GitHub Actions on a created project.

@@ -93,9 +93,13 @@ jobs:
   # Needs live verification: this job has never actually run in GitHub
   # Actions. It cannot run on the bare template (guarded out below) and no
   # project created from this template has pushed yet to exercise it for
-  # real. The build-serve-scan sequence and the "generate baseline, do not
-  # fail" first-run path were verified locally against a throwaway scaffold
-  # instead; see template-docs/memory.md, "Browser checks verification".
+  # real. The build-serve-scan sequence was verified locally against
+  # throwaway scaffolds, through the normal make a11y / make vrt path (no
+  # --update-snapshots); see template-docs/memory.md, "Browser checks
+  # verification". This job's own "generate baseline, do not fail" branch
+  # below (the --update-snapshots run, gated on the
+  # tests/vrt/__screenshots__/linux check) is a different code path that was
+  # never exercised locally and remains unverified pending a real CI run.
   browser:
     name: Browser checks (accessibility + visual regression)
     needs: guard
@@ -129,7 +133,7 @@ jobs:
           # a 200 on 4321 would otherwise be taken as proof this server is the
           # one answering. A fresh runner has nothing on the port, but a
           # self-hosted one can carry a leftover daemon between runs.
-          actual="$(grep -o 'http://localhost:[0-9]\{1,\}' /tmp/astro-preview.log | head -n 1)"
+          actual="$(grep -o 'http://localhost:[0-9]\{1,\}' /tmp/astro-preview.log | head -n 1 || true)"
           if [ "$actual" != "http://localhost:4321" ]; then
             echo "The preview server started on '${actual:-an address that could not be read}', not http://localhost:4321." >&2
             cat /tmp/astro-preview.log
@@ -164,8 +168,15 @@ jobs:
             pnpm exec playwright test tests/vrt
           else
             echo "No committed Linux baselines yet; generating them instead of failing this run."
-            pnpm exec playwright test tests/vrt --update-snapshots
+            # Set the output before running the command, not after: this
+            # branch's own exit-code behaviour on a successful baseline write
+            # was never exercised locally (see the comment above this job),
+            # so the flag is set unconditionally once this branch is taken,
+            # rather than gated on the command's own exit status, so the
+            # upload step below still has a baselines_generated output to key
+            # off regardless of how this command exits.
             echo "baselines_generated=true" >> "$GITHUB_OUTPUT"
+            pnpm exec playwright test tests/vrt --update-snapshots
           fi
 
       - name: Upload generated VRT baselines
