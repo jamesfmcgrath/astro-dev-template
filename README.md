@@ -67,7 +67,39 @@ make test          Unit tests (Vitest)
 make spell         Spell check (CSpell)
 make add I=<name>  Add an Astro integration or adapter
 make clean         Remove dist/ and .astro/
+make a11y          Accessibility scan (axe-core via Playwright)
+make vrt           Visual regression test (Playwright)
+make vrt-update    Regenerate VRT baselines (Linux/CI only; see below)
 ```
+
+## Browser checks
+
+`make a11y` and `make vrt` each build the production site, serve it with
+`astro preview`, and run one check against it through
+`scripts/browser-check.sh`: `scripts/a11y-scan.mjs` (axe-core via Playwright,
+WCAG 2.2 AA) for `make a11y`, `tests/vrt/vrt.spec.mjs`
+(`@playwright/test`'s `toHaveScreenshot`) for `make vrt`. Both read the same
+`scan-urls.json` at the repo root, set by `init.sh` to match the flavour: the
+front page always, plus one real content page for `blog` and `starlight`.
+Edit the list as real content replaces the example pages.
+
+Visual regression baselines are generated and compared on **Linux only**:
+font rendering differs enough between macOS and Linux to make cross-OS
+baselines flaky. Playwright suffixes each baseline with the OS it was
+generated on (`tests/vrt/__screenshots__/linux/…`,
+`tests/vrt/__screenshots__/darwin/…`); only `linux/` is committed. On a Mac:
+
+- `make vrt` / `make vrt-update` are **advisory only**: useful to confirm the
+  plumbing works, not to generate baselines to commit.
+- Generate and refresh real baselines in CI (the `browser` GitHub Actions
+  job) or a Linux container/VM, then commit the resulting
+  `tests/vrt/__screenshots__/linux/` directory.
+- In CI, a missing `linux/` baseline is not a failure: the job generates it
+  and uploads it as a build artifact for review and commit. Once baselines
+  exist, a genuine diff fails the job and the Playwright HTML report uploads
+  as an artifact.
+
+See `CONVENTIONS.md`, "Browser checks", for the full contract.
 
 ## Changing the deploy target
 

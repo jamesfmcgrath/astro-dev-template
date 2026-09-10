@@ -37,7 +37,17 @@ and was not observed.
   `titlecase()` breaks on BSD `tr` (macOS), leaving `SITE_LABEL` empty on a
   real run that does not pass `--site-label`; and `blog`/`starlight`/`ssr`
   have not been exercised against this toolchain, which is Stage 4's job.
-- **Stage 3, browser checks: PENDING.**
+- **Stage 3, browser checks: DONE, needs live CI verification.**
+  `scan-urls.json` set per flavour by `init.sh`; `scripts/a11y-scan.mjs`
+  adapted from `localgov-drupal-dev-template` (read from a checkout);
+  `playwright.config.mjs` / `tests/vrt/vrt.spec.mjs` net new; a fourth
+  script, `scripts/browser-check.sh`, backs `make a11y` / `make vrt` /
+  `make vrt-update`; a `browser` CI job inlines its own build-serve sequence.
+  Full rationale in `CONVENTIONS.md`, "Browser checks". Verified live
+  against a scaffolded project on 2026-09-10; see `memory.md`, "Browser
+  checks verification", for exactly what ran. The `browser` GitHub Actions
+  job itself has never run for real: that needs a push from a created
+  project, same caveat Stage 2's `quality` job still carries.
 - **Stage 4, flavour and deploy-target axes proven live: PENDING.**
 - **Stage 5, astro-expert skill: PENDING.**
 
