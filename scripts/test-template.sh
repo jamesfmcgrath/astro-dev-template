@@ -49,7 +49,8 @@ TOKEN_DOC_EXCEPTIONS=("CONVENTIONS.md")
 
 # Files that hold no {{TOKENS}} and so must survive init.sh byte for byte.
 VERBATIM_FILES=(.editorconfig .vscode/extensions.json CHANGELOG.md \
-  eslint.config.mjs .prettierrc.json vitest.config.ts cspell.json)
+  eslint.config.mjs .prettierrc.json vitest.config.ts cspell.json \
+  scripts/a11y-scan.mjs)
 
 yaml_parse() {
   local f="$1"
@@ -382,6 +383,19 @@ if grep -q '{{SITE_LABEL}}' AGENTS.md 2>/dev/null; then
 else
   fail "bare template has no {{SITE_LABEL}} token in AGENTS.md; has init.sh already run here?"
 fi
+
+echo ""
+echo -e "${BOLD}== browser-check scripts: syntax ==${RESET}"
+NODE_CHECK_FILES=(scripts/a11y-scan.mjs)
+for f in "${NODE_CHECK_FILES[@]}"; do
+  if command -v node >/dev/null 2>&1 && node --check "$f" 2>/dev/null; then
+    pass "node --check $f"
+  elif ! command -v node >/dev/null 2>&1; then
+    echo "  no node available, skipping node --check $f" >&2
+  else
+    fail "node --check $f"
+  fi
+done
 
 # Every combination through the flag path. The first also injects a file to
 # prove dynamic discovery.
