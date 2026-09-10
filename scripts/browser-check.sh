@@ -24,22 +24,38 @@ shift
 
 BASE_URL="http://localhost:4321"
 LOG_FILE="$(mktemp "${TMPDIR:-/tmp}/astro-preview-log.XXXXXX")"
-SERVER_PID=""
+SERVER_STARTED=0
 
+# "astro preview stop", not "kill", because Astro 7's preview server is a
+# detached daemon: the command starts it, prints its address and exits, so the
+# shell never has a PID that owns it. Killing the pnpm wrapper (what this
+# script used to do) left the server running and holding the port. Observed
+# live on 2026-09-10 with astro 7.3.2.
 cleanup() {
-  if [ -n "$SERVER_PID" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
-    kill "$SERVER_PID" 2>/dev/null || true
+  if [ "$SERVER_STARTED" = "1" ]; then
+    pnpm astro preview stop >/dev/null 2>&1 || true
   fi
   rm -f "$LOG_FILE"
 }
 trap cleanup EXIT
 
+# A server already on the port is fatal rather than tolerated: astro preview
+# silently falls back to the next free port (4322) when 4321 is taken, and the
+# readiness check below would then pass against whatever the other server is
+# serving, scanning a stale build with no warning.
+if curl -sSf "$BASE_URL/" >/dev/null 2>&1; then
+  die "Something is already serving $BASE_URL. Stop it first ('pnpm astro preview stop' if it is a leftover preview server), then re-run."
+fi
+
 info "Building the production site (astro build)..."
 pnpm astro build
 
 info "Starting the preview server ($BASE_URL)..."
-pnpm astro preview --port 4321 >"$LOG_FILE" 2>&1 &
-SERVER_PID=$!
+pnpm astro preview --background --port 4321 >"$LOG_FILE" 2>&1 || {
+  cat "$LOG_FILE" >&2
+  die "Could not start the preview server."
+}
+SERVER_STARTED=1
 
 ready=false
 i=1

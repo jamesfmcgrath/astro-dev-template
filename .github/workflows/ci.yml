@@ -119,8 +119,10 @@ jobs:
 
       - name: Serve the production build
         run: |
-          pnpm astro preview --port 4321 >/tmp/astro-preview.log 2>&1 &
-          echo $! > /tmp/astro-preview.pid
+          # --background because Astro 7's preview server detaches anyway: the
+          # command prints its address and exits, so a shell "&" and a $! PID
+          # buy nothing and the next step needs the server to outlive this one.
+          pnpm astro preview --background --port 4321 >/tmp/astro-preview.log 2>&1
 
           ready=false
           for i in $(seq 1 30); do
