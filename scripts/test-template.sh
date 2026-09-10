@@ -45,7 +45,7 @@ INJECTED_FILE="scratch-token-check.md"
 # rather than being files init.sh substitutes into. CONVENTIONS.md survives
 # into the created project, so its literal example is a permanent, deliberate
 # exception. template-docs/ is removed by init.sh and never reaches this check.
-TOKEN_DOC_EXCEPTIONS=("CONVENTIONS.md" "*/docs/superpowers/plans/2026-09-09-quality-toolchain.md")
+TOKEN_DOC_EXCEPTIONS=("CONVENTIONS.md")
 
 # Files that hold no {{TOKENS}} and so must survive init.sh byte for byte.
 VERBATIM_FILES=(.editorconfig .vscode/extensions.json CHANGELOG.md \
@@ -85,6 +85,10 @@ init_flags() { # init_flags <flavour> <deploy_target>
     --flavour "$1" --deploy-target "$2"
 }
 
+# .superpowers/ is a session's own SDD scratch workspace (ledger, briefs,
+# reports). It is never part of the template and must not leak into a staged
+# copy, where init.sh would substitute tokens into it and the leftover-token
+# scan would read it.
 stage_copy() { # stage_copy <dest>
   rsync -a --exclude='.git' --exclude='node_modules' --exclude='dist' \
     --exclude='.astro' --exclude='.claude/settings.local.json' \
@@ -140,6 +144,16 @@ assert_common() { # assert_common <dir> <label>
     pass "$label: .vscode/extensions.json is valid JSON"
   else
     fail "$label: .vscode/extensions.json is not valid JSON"
+  fi
+  if json_parse "$dir/.prettierrc.json"; then
+    pass "$label: .prettierrc.json is valid JSON"
+  else
+    fail "$label: .prettierrc.json is not valid JSON"
+  fi
+  if json_parse "$dir/cspell.json"; then
+    pass "$label: cspell.json is valid JSON"
+  else
+    fail "$label: cspell.json is not valid JSON"
   fi
   if yaml_parse "$dir/.github/workflows/ci.yml"; then
     pass "$label: ci.yml is valid YAML"
