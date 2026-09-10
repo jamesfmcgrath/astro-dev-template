@@ -1,6 +1,6 @@
 # Project memory: astro-dev-template
 
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 
 ## What this is
 
@@ -46,6 +46,32 @@ has actually happened. Nothing here is inferred.
 
 Environment for the runs above: macOS 15 (Darwin 25.6.0), Node 26.8.1
 (Homebrew), pnpm 12.3.4, Astro 7.3.2, create-astro 5.2.4.
+
+## Quality toolchain verification
+
+Live on 2026-09-10, minimal/static, Node 26.8.1, pnpm 12.3.4: `setup.sh`
+installed the quality-toolchain devDependencies and wrote the sample test.
+`make check`, `make lint`, `make format-check`, `make spell`, `make test` (1
+passed) and `make build` all passed. Three real fixes were needed first,
+none of which were exercised for real before this task: `.prettierrc.json`
+had no `singleQuote` setting, so Prettier's double-quote default disagreed
+with the single-quote style already used throughout the repo's own
+`eslint.config.mjs`, `vitest.config.ts` and the sample test `setup.sh`
+writes; `setup.sh`'s `Greeting.astro` heredoc was missing the blank line
+`prettier-plugin-astro` requires after the frontmatter fence; and neither
+`create-astro`'s scaffold nor `astro add` honour this project's Prettier
+config at all (wrong quotes, no trailing comma, no final newline on
+`astro.config.mjs`; the scaffold's own `src/pages/index.astro` mismatched
+too), so `setup.sh` now runs a `prettier --write` pass over the scaffold once
+the toolchain is installed. Separately, `cspell.json` had no `ignorePaths`
+and had only ever been dry-tested against the bare template: against a real
+scaffold its `words` list was missing genuine project vocabulary (WCAG,
+worktrees, vitest, vercel, astrojs, esbuild, and so on) and it was spell
+checking `pnpm-lock.yaml` wholesale, over 300 false hits from package and
+dependency names. Both are fixed; `make spell` is 0 issues, including a
+post-`make build` re-run to confirm `dist/` (gitignored) is not scanned. The
+restructured GitHub Actions `quality` job itself has not run in CI yet; that
+still needs a real push from a created project.
 
 ## Bugs found by the live runs (2026-09-09)
 
