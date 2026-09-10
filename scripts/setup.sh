@@ -176,6 +176,42 @@ else
   success "Astro scaffold in place ($ASTRO_TEMPLATE)."
 fi
 
+# --- Sample test ---
+# A self-contained component and test that does not depend on anything the
+# create-astro scaffold provides, so `make test` has something real to run
+# immediately after setup, on every flavour. Copy the pattern for real
+# components, or delete this one once real tests exist.
+if [ -f src/components/Greeting.test.ts ]; then
+  info "Sample test already present (src/components/Greeting.test.ts); leaving it alone."
+else
+  mkdir -p src/components
+  cat > src/components/Greeting.astro <<'ASTRO'
+---
+interface Props {
+  name: string;
+}
+const { name } = Astro.props;
+---
+<p>Hello, {name}!</p>
+ASTRO
+  cat > src/components/Greeting.test.ts <<'TS'
+import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import { describe, expect, test } from 'vitest';
+import Greeting from './Greeting.astro';
+
+describe('Greeting', () => {
+  test('renders the given name', async () => {
+    const container = await AstroContainer.create();
+    const result = await container.renderToString(Greeting, {
+      props: { name: 'Astro' },
+    });
+    expect(result).toContain('Hello, Astro!');
+  });
+});
+TS
+  success "Sample test written (src/components/Greeting.astro + Greeting.test.ts)."
+fi
+
 if [ "$SKIP_INSTALL" = "1" ]; then
   echo ""
   warn "--skip-install: stopping before pnpm install and the integration installs."
@@ -243,25 +279,44 @@ success "Dependencies installed."
 # 2026-09-09 with typescript 7.0.2. Track
 # https://github.com/withastro/roadmap/discussions/1321 and drop the pin when
 # astro check supports TypeScript 7.
-TYPECHECK_DEPS=("@astrojs/check" "typescript@^6")
-missing_dev=()
-for spec in "${TYPECHECK_DEPS[@]}"; do
-  dep="${spec%@^*}"
-  if ! node -e '
+dep_present() { # dep_present <package-name> -> 0 when already a dependency
+  node -e '
     const fs = require("fs");
     const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
     const dep = process.argv[1];
     const has = (p.dependencies && p.dependencies[dep]) || (p.devDependencies && p.devDependencies[dep]);
     process.exit(has ? 0 : 1);
-  ' "$dep" 2>/dev/null; then
-    missing_dev+=("$spec")
-  fi
+  ' "$1" 2>/dev/null
+}
+
+TYPECHECK_DEPS=("@astrojs/check" "typescript@^6")
+missing_dev=()
+for spec in "${TYPECHECK_DEPS[@]}"; do
+  dep="${spec%@^*}"
+  dep_present "$dep" || missing_dev+=("$spec")
 done
 if [ "${#missing_dev[@]}" -gt 0 ]; then
   info "Installing type-checking dependencies: ${missing_dev[*]}"
   pnpm add -D "${missing_dev[@]}" || warn "Could not install ${missing_dev[*]}; 'make check' will prompt for them."
 else
   success "Type-checking dependencies already present."
+fi
+
+# --- Quality toolchain ---
+# ESLint (eslint-plugin-astro) plus Prettier (prettier-plugin-astro) over
+# Biome; typescript-eslint for typed linting. Decision, date and reopen
+# triggers are in CONVENTIONS.md, "Quality toolchain". eslint-plugin-jsx-a11y
+# is deliberately not installed: see the same section for why.
+QUALITY_DEPS=(eslint eslint-plugin-astro typescript-eslint prettier prettier-plugin-astro vitest cspell)
+missing_quality=()
+for dep in "${QUALITY_DEPS[@]}"; do
+  dep_present "$dep" || missing_quality+=("$dep")
+done
+if [ "${#missing_quality[@]}" -gt 0 ]; then
+  info "Installing quality-toolchain dependencies: ${missing_quality[*]}"
+  pnpm add -D "${missing_quality[@]}" || warn "Could not install ${missing_quality[*]}; make lint/format/test/spell will not work."
+else
+  success "Quality-toolchain dependencies already present."
 fi
 
 # --- Integrations ---
