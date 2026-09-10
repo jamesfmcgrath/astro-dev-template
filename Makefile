@@ -34,12 +34,14 @@ preview: ## Serve the production build locally
 
 # The bare template ships no src/, and a project before its first
 # setup.sh run has none either. Every target below that only makes sense
-# once there is app code uses this guard to skip cleanly instead of letting
-# the underlying tool exit non-zero on nothing to check. Root-level config
-# files this template ships (astro.config.mjs, eslint.config.mjs,
-# vitest.config.ts) are covered by Prettier alongside src/; ESLint and
-# Vitest find them on their own once src/ exists.
-GUARD_SRC = [ -d src ] || { echo "No src/ yet; skipping $@."; exit 0; }
+# once there is app code needs this guard to skip cleanly instead of letting
+# the underlying tool exit non-zero on nothing to check. node_modules is
+# checked too, because ./scripts/setup.sh --skip-install creates src/ without
+# installing anything, and pnpm exec on a missing tool is a hard failure.
+# Root-level config files this template ships (astro.config.mjs,
+# eslint.config.mjs, vitest.config.ts) are covered by Prettier alongside src/;
+# ESLint and Vitest find them on their own once src/ exists.
+GUARD_SRC = [ -d src ] && [ -d node_modules ] || { echo "No src/ or node_modules yet; skipping $@."; exit 0; }
 FMT_PATHS = src astro.config.mjs eslint.config.mjs vitest.config.ts
 
 check: ## Type check .astro and TypeScript (astro check)

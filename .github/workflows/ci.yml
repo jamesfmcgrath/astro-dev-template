@@ -57,7 +57,7 @@ jobs:
   # on the bare template (guarded out above), and no project has been created
   # from this template and pushed yet to exercise it for real.
   quality:
-    name: Type check, lint, format, spell, test, build
+    name: Type check, lint, format check, spell, test, build
     needs: guard
     if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
