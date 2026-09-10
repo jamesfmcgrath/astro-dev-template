@@ -159,14 +159,50 @@ Lineage: inherited wholesale from localgov-drupal-dev-template.
 
 ## Browser checks
 
-Accessibility (axe-core) and visual regression (Playwright) share one
-`scan-urls.json`, generated to match the built site rather than hardcoded, so a
-path that a flavour does not serve is not a false failure. Visual regression
-baselines are generated and compared on Linux only; font rendering makes
-cross-OS baselines flaky, so only `tests/vrt/__screenshots__/linux/` is
-authoritative and committed. This contract is declared now and implemented in
-Stage 3; the accessibility half is adapted from
-localgov-drupal-dev-template, the visual regression half is net new here.
+Accessibility (axe-core via Playwright, `scripts/a11y-scan.mjs`) and visual
+regression (`@playwright/test`'s `toHaveScreenshot`, `tests/vrt/vrt.spec.mjs`)
+share one `scan-urls.json` at the repo root. `scripts/init.sh` sets its
+content from `FLAVOUR`: `["/"]` for `minimal`, plus one real content page from
+the flavour's own create-astro / starlight example content for `blog`
+(`/blog/first-post/`) and `starlight` (`/guides/example/`), so a path a
+flavour does not serve is never a false failure. Edit the list by hand as real
+content replaces the example pages.
+
+Both checks run against a production build served with `astro preview`:
+`astro build` for a static project, the same command for an SSR one, since
+the adapter is already registered in `astro.config.mjs` by `setup.sh` and
+`@astrojs/node` supports `astro preview` through its own preview entrypoint.
+`make a11y` and `make vrt` build and serve locally through
+`scripts/browser-check.sh`, a fourth committed script alongside
+`init.sh`/`setup.sh`/`test-template.sh`: an ordinary dev-task helper, not part
+of the tokeniser lifecycle those three define, but held to the same
+portability floor below. The `browser` CI job does the same build-serve
+sequence inline instead of calling that script, so it can run the
+accessibility scan and the visual regression test against one server rather
+than building and serving twice.
+
+Visual regression baselines are generated and compared on Linux only, because
+font rendering makes cross-OS baselines flaky, so only
+`tests/vrt/__screenshots__/linux/` is authoritative and committed;
+`tests/vrt/__screenshots__/darwin/` and `.../win32/` are gitignored, and
+`make vrt` / `make vrt-update` on a Mac are advisory only. In CI, a missing
+`linux/` baseline is not a failure: the job generates it with
+`--update-snapshots` and uploads it as a build artifact to review and commit;
+once a baseline exists, a genuine diff fails the job and the Playwright HTML
+report uploads as an artifact.
+
+`scripts/a11y-scan.mjs` is adapted from `localgov-drupal-dev-template`'s
+script of the same name (read from a checkout, not reimplemented from
+description): the same WCAG tag set (`wcag2a`, `wcag2aa`, `wcag21aa`,
+`wcag22aa`, i.e. WCAG 2.2 AA and everything it supersedes) and the same
+`scan-urls.json` / `--base-url=` contract, with the default base URL changed
+from the Drupal reference's PHP dev server to Astro's own default
+(`http://localhost:4321`). The visual regression half
+(`playwright.config.mjs`, `tests/vrt/vrt.spec.mjs`) is net new here, patterned
+on the same reference project's own, separately net-new, Playwright VRT
+setup: full-page screenshots, animations disabled, `maxDiffPixelRatio: 0.01`.
+
+WCAG target: 2.2 AA, per the House rules below and `AGENTS.md`.
 
 ## House rules
 
