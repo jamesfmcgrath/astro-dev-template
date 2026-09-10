@@ -35,6 +35,17 @@ localgov-drupal-dev-template.
 All three scripts live in `scripts/`, are committed `100755`, are
 `#!/usr/bin/env bash`, and are portable across macOS (BSD) and Linux (GNU).
 
+**Portability floor: macOS bash 3.2 with BSD userland.** No GNU-only flag or
+behaviour is assumed. `cp -n`'s differing exit code across BSD and GNU (fixed
+in `setup.sh`) and BSD `tr` rejecting a multi-char set such as `tr '-_' '  '`
+as an illegal option (fixed in `init.sh`'s `titlecase()`) are the two bugs
+this rule exists to stop repeating. In particular: no `sed -i` without an
+explicit (possibly empty) backup suffix, no `tr` with ranges or multi-char
+sets, no `readlink -f`, `date -d`, `grep -P`, `sort -V`, `find -printf` or
+`xargs -r`, no GNU-only `stat`/`head -c`/`mktemp` flags, and no bash 4+ syntax
+(`${x^}`, `${x,,}`, `mapfile`, `readarray`, associative arrays, `globstar`).
+The floor is bash 3.2, not whatever ships on the developer's machine.
+
 - `init.sh` is the **one-time tokeniser**. It takes every answer from a flag,
   a prompt, or both; records the resolved answers in `template.answers`;
   substitutes tokens across every discovered file; removes `TEMPLATE.md`,

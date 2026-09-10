@@ -89,7 +89,16 @@ ask() { # ask <prompt> <default> -> echoes answer
   else read -r -p "$prompt: " ans; echo "$ans"; fi
 }
 
-titlecase() { echo "$1" | tr '-_' '  ' | awk '{for(i=1;i<=NF;i++)$i=toupper(substr($i,1,1))substr($i,2)}1'; }
+# BSD tr (macOS) rejects a multi-char set like tr '-_' '  ' as an illegal
+# option because it starts with '-'; awk alone avoids tr entirely and its
+# toupper/substr are POSIX, so this stays portable across BSD and GNU.
+titlecase() {
+  printf '%s' "$1" | awk '{
+    gsub(/[-_]+/, " ")
+    for (i = 1; i <= NF; i++) $i = toupper(substr($i, 1, 1)) substr($i, 2)
+    print
+  }'
+}
 
 SITE_NAME_RULE="Site machine names must start with a lowercase letter and may contain only lowercase letters, digits and hyphens (for example acme-site). This becomes the npm package name, so underscores and capitals are not valid."
 
