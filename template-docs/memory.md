@@ -110,18 +110,17 @@ Read from the npm registry and the published packages, not from memory:
   `netlify`, `vercel`, `cloudflare`.
 - `@astrojs/check` 0.9.10, `@astrojs/sitemap` 3.7.4, `@astrojs/node` 11.1.5,
   `@astrojs/starlight` 0.42.0.
-- `eslint-plugin-astro` 3.1.0, `prettier-plugin-astro` 1.0.0. Biome 2.5.12
-  lists Astro as experimental for parsing, formatting and linting, and
-  unsupported for plugins, so the ESLint plus Prettier pair stays the choice.
+- `eslint-plugin-astro` 3.1.0, `typescript-eslint` 8.70.0, `prettier` 3.9.6,
+  `prettier-plugin-astro` 1.0.0, `vitest` 5.0.0, `cspell` 10.3.0. Confirmed
+  live in a throwaway sandbox (not just read from the registry): the flat
+  config order matters (`typescript-eslint` before `eslint-plugin-astro`, or
+  the astro parser gets overwritten), `eslint-plugin-jsx-a11y` cannot install
+  alongside ESLint 10, and `typescript-eslint`'s `typescript <6.1.0` peer
+  range still fits our `^6` pin because only `6.0.x` has shipped.
 - GitHub Actions: `actions/checkout` v7.0.1, `actions/setup-node` v7.0.0.
 
 ## Open questions
 
-- Quality toolchain: flat-config ESLint plus Prettier is the assumed answer,
-  but the decision and the wiring are Stage 2 and not made yet. Until then
-  `make lint`, `make format`, `make test` and `make spell` have no
-  configuration or devDependencies behind them, and the `quality` CI job will
-  fail on a created project.
 - Whether `starlight` should be offered on `ssr` at all.
 - The `quality` and `build` CI jobs have never run. They cannot, until a
   project created from this template pushes with a `package.json` present.
