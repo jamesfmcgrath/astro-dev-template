@@ -83,6 +83,97 @@ jobs:
       - name: Production build
         run: make build
 
-  # Browser checks (axe-core accessibility scan plus Playwright visual
-  # regression, sharing one scan-urls.json) land in Stage 3. See CONVENTIONS.md
-  # for the contract they will implement.
+  # Accessibility (axe-core) and visual regression (Playwright) checks,
+  # sharing scan-urls.json. Guarded the same as quality: runs only once a
+  # project has been scaffolded (package.json present). Inlines its own
+  # build-serve sequence rather than calling scripts/browser-check.sh, so
+  # both checks below run against one server instead of building and
+  # serving twice; see CONVENTIONS.md, "Browser checks".
+  #
+  # Needs live verification: this job has never actually run in GitHub
+  # Actions. It cannot run on the bare template (guarded out below) and no
+  # project created from this template has pushed yet to exercise it for
+  # real. The build-serve-scan sequence and the "generate baseline, do not
+  # fail" first-run path were verified locally against a throwaway scaffold
+  # instead; see template-docs/memory.md, "Browser checks verification".
+  browser:
+    name: Browser checks (accessibility + visual regression)
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - run: corepack enable pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Production build
+        run: pnpm astro build
+
+      - name: Serve the production build
+        run: |
+          pnpm astro preview --port 4321 >/tmp/astro-preview.log 2>&1 &
+          echo $! > /tmp/astro-preview.pid
+
+          ready=false
+          for i in $(seq 1 30); do
+            if curl -sSf http://localhost:4321/ >/dev/null 2>&1; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$ready" = false ]; then
+            echo "astro preview did not respond on http://localhost:4321." >&2
+            cat /tmp/astro-preview.log
+            exit 1
+          fi
+
+      - name: Accessibility scan (axe-core via Playwright)
+        run: node scripts/a11y-scan.mjs --base-url=http://localhost:4321
+
+      - name: Visual regression test (Playwright)
+        id: vrt
+        env:
+          VRT_BASE_URL: http://localhost:4321
+        run: |
+          if [ -d tests/vrt/__screenshots__/linux ] && find tests/vrt/__screenshots__/linux -name '*.png' -print -quit | grep -q .; then
+            echo "Committed Linux baselines found; comparing against them."
+            pnpm exec playwright test tests/vrt
+          else
+            echo "No committed Linux baselines yet; generating them instead of failing this run."
+            pnpm exec playwright test tests/vrt --update-snapshots
+            echo "baselines_generated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload generated VRT baselines
+        if: steps.vrt.outputs.baselines_generated == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: vrt-baselines-linux
+          path: tests/vrt/__screenshots__/linux/
+          if-no-files-found: error
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+
+      - name: Show preview server log
+        if: failure()
+        run: cat /tmp/astro-preview.log 2>/dev/null || true
+
+      - name: Stop the preview server
+        if: always()
+        run: kill "$(cat /tmp/astro-preview.pid)" 2>/dev/null || true
