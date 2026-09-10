@@ -32,23 +32,33 @@ preview: ## Serve the production build locally
 
 ## == Quality ==================================================================
 
+# The bare template ships no src/, and a project before its first
+# setup.sh run has none either. Every target below that only makes sense
+# once there is app code uses this guard to skip cleanly instead of letting
+# the underlying tool exit non-zero on nothing to check. Root-level config
+# files this template ships (astro.config.mjs, eslint.config.mjs,
+# vitest.config.ts) are covered by Prettier alongside src/; ESLint and
+# Vitest find them on their own once src/ exists.
+GUARD_SRC = [ -d src ] || { echo "No src/ yet; skipping $@."; exit 0; }
+FMT_PATHS = src astro.config.mjs eslint.config.mjs vitest.config.ts
+
 check: ## Type check .astro and TypeScript (astro check)
 	$(PNPM) astro check
 
 lint: ## Lint (ESLint)
-	$(PNPM) exec eslint .
+	@$(GUARD_SRC) && $(PNPM) exec eslint .
 
 lint-fix: ## Lint and apply fixes (ESLint)
-	$(PNPM) exec eslint . --fix
+	@$(GUARD_SRC) && $(PNPM) exec eslint . --fix
 
 format: ## Format (Prettier)
-	$(PNPM) exec prettier --write .
+	@$(GUARD_SRC) && $(PNPM) exec prettier --write $(FMT_PATHS)
 
 format-check: ## Check formatting without writing (Prettier)
-	$(PNPM) exec prettier --check .
+	@$(GUARD_SRC) && $(PNPM) exec prettier --check $(FMT_PATHS)
 
 test: ## Unit tests (Vitest)
-	$(PNPM) exec vitest run
+	@$(GUARD_SRC) && $(PNPM) exec vitest run
 
 spell: ## Spell check (CSpell)
 	$(PNPM) exec cspell --no-progress --no-must-find-files "**"
