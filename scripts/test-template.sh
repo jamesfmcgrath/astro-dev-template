@@ -190,6 +190,11 @@ assert_common() { # assert_common <dir> <label>
   else
     fail "$label: cspell.json is not valid JSON"
   fi
+  if json_parse "$dir/scan-urls.json"; then
+    pass "$label: scan-urls.json is valid JSON"
+  else
+    fail "$label: scan-urls.json is not valid JSON"
+  fi
   if yaml_parse "$dir/.github/workflows/ci.yml"; then
     pass "$label: ci.yml is valid YAML"
   else
@@ -273,6 +278,28 @@ assert_substitutions() { # assert_substitutions <dir> <label> <flavour> <deploy>
   fi
 }
 
+# scan-urls.json's content depends only on FLAVOUR, set directly by init.sh
+# rather than substituted, so it gets its own comparison instead of living in
+# assert_substitutions.
+assert_scan_urls() { # assert_scan_urls <dir> <label> <flavour>
+  local dir="$1" label="$2" flavour="$3" expected
+  case "$flavour" in
+    blog)      expected='["/", "/blog/first-post/"]' ;;
+    starlight) expected='["/", "/guides/example/"]' ;;
+    *)         expected='["/"]' ;;
+  esac
+  if python3 -c "
+import json, sys
+expected = json.loads(sys.argv[1])
+actual = json.load(open(sys.argv[2]))
+sys.exit(0 if actual == expected else 1)
+" "$expected" "$dir/scan-urls.json" 2>/dev/null; then
+    pass "$label: scan-urls.json matches $flavour defaults"
+  else
+    fail "$label: scan-urls.json does not match $flavour defaults (got: $(cat "$dir/scan-urls.json" 2>/dev/null | tr '\n' ' '))"
+  fi
+}
+
 run_combo() { # run_combo <flavour> <deploy> <astro_template> <adapter> [mode] [inject]
   local flavour="$1" deploy="$2" astro_template="$3" adapter="$4"
   local mode="${5:-flags}" inject="${6:-}"
@@ -315,6 +342,7 @@ run_combo() { # run_combo <flavour> <deploy> <astro_template> <adapter> [mode] [
   assert_common "$tmp_dir" "$label"
   assert_answers "$tmp_dir" "$label" "$flavour" "$deploy" "$astro_template" "$adapter" "$mode"
   assert_substitutions "$tmp_dir" "$label" "$flavour" "$deploy" "$astro_template" "$adapter" "$mode"
+  assert_scan_urls "$tmp_dir" "$label" "$flavour"
 
   if [ "$inject" = "1" ]; then
     if grep -qF "$CLIENT" "$tmp_dir/$INJECTED_FILE" 2>/dev/null; then

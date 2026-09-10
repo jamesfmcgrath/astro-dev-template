@@ -201,6 +201,27 @@ case "$DEPLOY_TARGET" in
   *)   ADAPTER="" ;;
 esac
 
+# scan-urls.json: the shared page list axe-core and the Playwright visual
+# regression test both read (see CONVENTIONS.md, "Browser checks"). Set from
+# FLAVOUR so the default list matches pages the flavour actually builds: the
+# front page always, plus one real content page for blog and starlight, taken
+# from the create-astro / starlight example content each flavour scaffolds.
+# Edit the file later as real content replaces the example pages.
+case "$FLAVOUR" in
+  blog)      SCAN_URLS='[
+  "/",
+  "/blog/first-post/"
+]' ;;
+  starlight) SCAN_URLS='[
+  "/",
+  "/guides/example/"
+]' ;;
+  *)         SCAN_URLS='[
+  "/"
+]' ;;
+esac
+printf '%s\n' "$SCAN_URLS" > scan-urls.json
+
 # Record the resolved answers before substituting, so the run is auditable and
 # can be reproduced with the matching flags. Each prompted key maps to the flag
 # of the same name (SITE_NAME to --site, and so on); the last two are derived.
