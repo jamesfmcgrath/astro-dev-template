@@ -172,15 +172,16 @@ jobs:
             # branch's own exit-code behaviour on a successful baseline write
             # was never exercised locally (see the comment above this job),
             # so the flag is set unconditionally once this branch is taken,
-            # rather than gated on the command's own exit status, so the
-            # upload step below still has a baselines_generated output to key
-            # off regardless of how this command exits.
+            # rather than gated on the command's own exit status. The upload
+            # step below uses if: always() for exactly this reason, so it
+            # still runs off this output even if this command exits non-zero;
+            # do not revert one half without the other.
             echo "baselines_generated=true" >> "$GITHUB_OUTPUT"
             pnpm exec playwright test tests/vrt --update-snapshots
           fi
 
       - name: Upload generated VRT baselines
-        if: steps.vrt.outputs.baselines_generated == 'true'
+        if: always() && steps.vrt.outputs.baselines_generated == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: vrt-baselines-linux

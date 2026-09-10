@@ -193,10 +193,13 @@ job's serve step both start it explicitly with `--background`, then read the
 address back from the server's own log output and assert it matches
 `http://localhost:4321`, because `astro preview` falls back silently to the
 next free port instead of failing when 4321 is already taken; a plain
-readiness probe on 4321 would not catch that fallback. Both also refuse to
-start at all if something already answers on port 4321 before the build even
-begins, a pre-flight check that catches the same silent-fallback failure mode
-one step earlier, before a build is wasted on it. Teardown is
+readiness probe on 4321 would not catch that fallback.
+`scripts/browser-check.sh` also refuses to start at all if something already
+answers on port 4321 before the build even begins, a pre-flight check that
+catches the same silent-fallback failure mode one step earlier, before a
+build is wasted on it; the `browser` CI job skips this, relying on the
+post-start assertion alone, since a hosted runner starts clean each run.
+Teardown is
 `astro preview stop`, not a process signal: the shell never owns a PID for a
 detached daemon, so killing the `pnpm` wrapper leaves the real server running
 and holding the port.
