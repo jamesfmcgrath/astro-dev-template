@@ -4,7 +4,7 @@
 ##
 
 .PHONY: help dev build preview check lint lint-fix format format-check \
-        test spell add clean guard-integration
+        test spell add clean guard-integration a11y vrt vrt-update
 
 SITE_NAME = {{SITE_NAME}}
 FLAVOUR = {{FLAVOUR}}
@@ -83,3 +83,14 @@ guard-integration:
 clean: ## Remove build output and caches (keeps node_modules)
 	rm -rf dist .astro
 	@echo "Removed dist/ and .astro/. To drop dependencies too: rm -rf node_modules"
+
+## == Browser checks ===========================================================
+
+a11y: ## Accessibility scan (axe-core via Playwright); builds and serves the production build first
+	@$(GUARD_SRC) && ./scripts/browser-check.sh a11y
+
+vrt: ## Visual regression test (Playwright); Linux baselines are authoritative, macOS runs are advisory
+	@$(GUARD_SRC) && ./scripts/browser-check.sh vrt
+
+vrt-update: ## Regenerate VRT baselines; only commit baselines generated on Linux/CI
+	@$(GUARD_SRC) && ./scripts/browser-check.sh vrt --update-snapshots

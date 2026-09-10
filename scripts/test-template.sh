@@ -50,7 +50,8 @@ TOKEN_DOC_EXCEPTIONS=("CONVENTIONS.md")
 # Files that hold no {{TOKENS}} and so must survive init.sh byte for byte.
 VERBATIM_FILES=(.editorconfig .vscode/extensions.json CHANGELOG.md \
   eslint.config.mjs .prettierrc.json vitest.config.ts cspell.json \
-  scripts/a11y-scan.mjs playwright.config.mjs tests/vrt/vrt.spec.mjs)
+  scripts/a11y-scan.mjs playwright.config.mjs tests/vrt/vrt.spec.mjs \
+  scripts/browser-check.sh)
 
 yaml_parse() {
   local f="$1"
@@ -163,7 +164,7 @@ assert_common() { # assert_common <dir> <label>
   if bash -n "$dir/scripts/setup.sh" 2>/dev/null; then pass "$label: scripts/setup.sh bash -n"; else fail "$label: scripts/setup.sh bash -n failed"; fi
   if [ -x "$dir/scripts/setup.sh" ]; then pass "$label: scripts/setup.sh still executable"; else fail "$label: scripts/setup.sh not executable"; fi
 
-  for target in help dev build preview check lint lint-fix format format-check test spell clean; do
+  for target in help dev build preview check lint lint-fix format format-check test spell clean a11y vrt vrt-update; do
     if (cd "$dir" && make -n "$target") >/dev/null 2>&1; then
       pass "$label: make -n $target parses"
     else
@@ -396,6 +397,16 @@ for f in "${NODE_CHECK_FILES[@]}"; do
     fail "node --check $f"
   fi
 done
+if bash -n scripts/browser-check.sh; then
+  pass "bash -n scripts/browser-check.sh"
+else
+  fail "bash -n scripts/browser-check.sh"
+fi
+if [ -x scripts/browser-check.sh ]; then
+  pass "scripts/browser-check.sh is executable"
+else
+  fail "scripts/browser-check.sh is not executable"
+fi
 
 # Every combination through the flag path. The first also injects a file to
 # prove dynamic discovery.
