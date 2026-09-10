@@ -7,12 +7,16 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: [['html', { outputFolder: 'playwright-report', open: 'never' }], ['list']],
+  reporter: [
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['list'],
+  ],
   // Baselines are OS-suffixed by directory rather than filename, so the
   // Linux ones (authoritative, committed) and the macOS ones (advisory,
   // gitignored) never collide. See CONVENTIONS.md, "Browser checks", for the
   // baseline policy.
-  snapshotPathTemplate: '{testDir}/__screenshots__/{platform}/{testFileName}/{arg}{ext}',
+  snapshotPathTemplate:
+    '{testDir}/__screenshots__/{platform}/{testFileName}/{arg}{ext}',
   use: {
     viewport: { width: 1280, height: 720 },
   },

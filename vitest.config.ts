@@ -1,4 +1,7 @@
-/// <reference types="vitest/config" />
+// No `/// <reference types="vitest/config" />` here on purpose: the import
+// below already pulls those types in, and having both is exactly what
+// @typescript-eslint/triple-slash-reference's default "prefer-import" flags,
+// so "make lint" fails. Observed live on 2026-09-10.
 import { getViteConfig } from 'astro/config';
 import { configDefaults } from 'vitest/config';
 

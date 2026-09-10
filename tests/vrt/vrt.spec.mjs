@@ -11,7 +11,9 @@ function loadPaths() {
   const raw = readFileSync(configPath, 'utf8');
   const paths = JSON.parse(raw);
   if (!Array.isArray(paths) || paths.length === 0) {
-    throw new Error(`${configPath} must contain a non-empty JSON array of paths`);
+    throw new Error(
+      `${configPath} must contain a non-empty JSON array of paths`,
+    );
   }
   return paths;
 }
@@ -25,7 +27,9 @@ function snapshotName(urlPath) {
 
 for (const urlPath of loadPaths()) {
   test(`visual regression: ${urlPath}`, async ({ page }) => {
-    await page.goto(new URL(urlPath, BASE_URL).toString(), { waitUntil: 'load' });
+    await page.goto(new URL(urlPath, BASE_URL).toString(), {
+      waitUntil: 'load',
+    });
     await expect(page).toHaveScreenshot(snapshotName(urlPath), {
       fullPage: true,
       animations: 'disabled',

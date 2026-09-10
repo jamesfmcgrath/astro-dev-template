@@ -23,7 +23,9 @@ function loadUrls() {
   const raw = readFileSync(configPath, 'utf8');
   const paths = JSON.parse(raw);
   if (!Array.isArray(paths) || paths.length === 0) {
-    throw new Error(`${configPath} must contain a non-empty JSON array of paths`);
+    throw new Error(
+      `${configPath} must contain a non-empty JSON array of paths`,
+    );
   }
   return paths;
 }
@@ -33,7 +35,7 @@ function reportViolations(url, violations) {
     const sample = violation.nodes[0]?.target?.join(' ') ?? '(no selector)';
     console.log(
       `[VIOLATION] ${url} - ${violation.id} (${violation.impact}) ` +
-      `tags=${violation.tags.join(',')} count=${violation.nodes.length} sample="${sample}"`
+        `tags=${violation.tags.join(',')} count=${violation.nodes.length} sample="${sample}"`,
     );
   }
 }
@@ -58,7 +60,9 @@ async function main() {
         loadFailures += 1;
         continue;
       }
-      const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      const results = await new AxeBuilder({ page })
+        .withTags(WCAG_TAGS)
+        .analyze();
       reportViolations(url, results.violations);
       totalViolations += results.violations.length;
     }
@@ -67,15 +71,21 @@ async function main() {
   }
 
   if (loadFailures > 0) {
-    console.error(`\n${loadFailures} page(s) failed to load across ${paths.length} page(s).`);
+    console.error(
+      `\n${loadFailures} page(s) failed to load across ${paths.length} page(s).`,
+    );
     process.exitCode = 1;
   }
 
   if (totalViolations > 0) {
-    console.error(`\n${totalViolations} accessibility violation(s) found across ${paths.length} page(s).`);
+    console.error(
+      `\n${totalViolations} accessibility violation(s) found across ${paths.length} page(s).`,
+    );
     process.exitCode = 1;
   } else if (loadFailures === 0) {
-    console.log(`\nNo accessibility violations found across ${paths.length} page(s) (${WCAG_TAGS.join(', ')}).`);
+    console.log(
+      `\nNo accessibility violations found across ${paths.length} page(s) (${WCAG_TAGS.join(', ')}).`,
+    );
   }
 }
 

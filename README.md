@@ -91,6 +91,10 @@ generated on (`tests/vrt/__screenshots__/linux/…`,
 
 - `make vrt` / `make vrt-update` are **advisory only**: useful to confirm the
   plumbing works, not to generate baselines to commit.
+- The **first** local `make vrt` always fails: Playwright writes the missing
+  baseline and reports the run as failed ("A snapshot doesn't exist ...,
+  writing actual"). Run it again and it compares against what it just wrote
+  and passes. Not a bug, and the CI job handles the same case its own way.
 - Generate and refresh real baselines in CI (the `browser` GitHub Actions
   job) or a Linux container/VM, then commit the resulting
   `tests/vrt/__screenshots__/linux/` directory.

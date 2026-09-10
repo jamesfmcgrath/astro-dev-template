@@ -21,7 +21,11 @@
     "jamesfmcgrath",
     "mktemp",
     "playwright",
-    "chromium"
+    "chromium",
+    "titlecase",
+    "readlink",
+    "mapfile",
+    "readarray"
   ],
   "ignorePaths": [
     "pnpm-lock.yaml",
