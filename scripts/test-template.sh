@@ -45,10 +45,11 @@ INJECTED_FILE="scratch-token-check.md"
 # rather than being files init.sh substitutes into. CONVENTIONS.md survives
 # into the created project, so its literal example is a permanent, deliberate
 # exception. template-docs/ is removed by init.sh and never reaches this check.
-TOKEN_DOC_EXCEPTIONS=("CONVENTIONS.md")
+TOKEN_DOC_EXCEPTIONS=("CONVENTIONS.md" "*/docs/superpowers/plans/2026-09-09-quality-toolchain.md")
 
 # Files that hold no {{TOKENS}} and so must survive init.sh byte for byte.
-VERBATIM_FILES=(.editorconfig .vscode/extensions.json CHANGELOG.md)
+VERBATIM_FILES=(.editorconfig .vscode/extensions.json CHANGELOG.md \
+  eslint.config.mjs .prettierrc.json vitest.config.ts cspell.json)
 
 yaml_parse() {
   local f="$1"
@@ -87,6 +88,7 @@ init_flags() { # init_flags <flavour> <deploy_target>
 stage_copy() { # stage_copy <dest>
   rsync -a --exclude='.git' --exclude='node_modules' --exclude='dist' \
     --exclude='.astro' --exclude='.claude/settings.local.json' \
+    --exclude='.superpowers' \
     "$REPO_ROOT"/ "$1"/ >/dev/null
 }
 
