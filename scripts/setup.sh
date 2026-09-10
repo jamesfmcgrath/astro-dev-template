@@ -311,12 +311,15 @@ fi
 # triggers are in CONVENTIONS.md, "Quality toolchain". eslint-plugin-jsx-a11y
 # is deliberately not installed: see the same section for why.
 #
-# @eslint/js is listed explicitly because eslint.config.mjs imports it for the
-# core rule set, and pnpm's isolated node_modules does not expose a transitive
-# dependency of eslint to the project. typescript-eslint is pinned to ^8 for
-# the same reason typescript is pinned to ^6 above: its flat-config ordering
-# behaviour and its typescript peer range are verified against 8.70.0.
-QUALITY_DEPS=("@eslint/js" eslint eslint-plugin-astro "typescript-eslint@^8" prettier prettier-plugin-astro vitest cspell)
+# @eslint/js and globals are listed explicitly because eslint.config.mjs
+# imports both (the core rule set, and the Node globals that core rule set's
+# no-undef needs for plain JS), and pnpm's isolated node_modules does not
+# expose a transitive dependency of eslint to the project. typescript-eslint
+# is pinned to ^8 for the same reason typescript is pinned to ^6 above: its
+# flat-config ordering behaviour and its typescript peer range are verified
+# against 8.70.0.
+QUALITY_DEPS=("@eslint/js" eslint eslint-plugin-astro globals \
+  "typescript-eslint@^8" prettier prettier-plugin-astro vitest cspell)
 missing_quality=()
 for spec in "${QUALITY_DEPS[@]}"; do
   dep="${spec%@^*}"
